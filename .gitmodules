@@ -1,0 +1,6 @@
+[submodule "submodules/libopencm3"]
+	path = submodules/libopencm3
+	url = https://github.com/libopencm3/libopencm3.git
+[submodule "submodules/BME280_driver"]
+	path = submodules/BME280_driver
+	url = https://github.com/boschsensortec/BME280_driver.git
