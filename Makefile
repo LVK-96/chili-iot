@@ -1,10 +1,12 @@
 # Paths and filenames
-BINARY         := sensor_node
-BUILD_DIR      := build
-SRC_DIR        := src
-OPENCM3_DIR    := submodules/libopencm3
-BME280_DIR     := submodules/BME280_driver
-LDSCRIPT       := stm32f103c8t6.ld
+BINARY              := sensor_node
+BUILD_DIR           := build
+LIB_DIR             := lib
+SRC_DIR             := src
+NEWLIB_SYSCALLS_DIR := newlib_syscalls
+OPENCM3_DIR         := submodules/libopencm3
+BME280_DIR          := submodules/BME280_driver
+LDSCRIPT            := stm32f103c8t6.ld
 
 # Toolchain
 TOOLCHAIN_PREFIX := arm-none-eabi
@@ -51,8 +53,9 @@ TGT_LDFLAGS	 += $(ARCH_FLAGS)
 TGT_LDFLAGS	 += $(OPT_FLAGS)
 TGT_LDFLAGS	 += -Wl,-Map=$(BUILD_DIR)/$(*).map
 LDLIBS       += --specs=nosys.specs
-LDLIBS       += -Wl,--start-group -lc -lgcc -lnosys -Wl,--end-group
+LDLIBS       += -Wl,--start-group -L$(LIB_DIR) -lnewlib_syscalls -lc -lgcc -lnosys -Wl,--end-group
 LDLIBS       += -L$(OPENCM3_DIR)/lib -lopencm3_stm32f1
+LDLIBS       += -L$(LIB_DIR) -lbme280
 
 # Pass C flags to libopencm3 makefiles
 CFLAGS += $(TGT_CFLAGS)
@@ -64,8 +67,8 @@ SRC_FILES := $(shell find $(SRC_DIR) -name '*.cpp')
 OBJS      := $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(SRC_FILES))
 DEPENDS   := $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.d, $(SRC_FILES))
 BME280_SRC_FILES := $(shell find $(BME280_DIR) -maxdepth 1 -name '*.c')
-BME280_OBJS      := $(patsubst $(BME280_DIR)/%.c, $(BUILD_DIR)/%.o, $(BME280_SRC_FILES))
-BME280_DEPENDS   := $(patsubst $(BME280_DIR)/%.c, $(BUILD_DIR)/%.d, $(BME280_SRC_FILES))
+BME280_OBJS      := $(patsubst $(BME280_DIR)/%.c, $(LIB_DIR)/%.o, $(BME280_SRC_FILES))
+BME280_DEPENDS   := $(patsubst $(BME280_DIR)/%.c, $(LIB_DIR)/%.d, $(BME280_SRC_FILES))
 
 # Makefile debug
 echo-src:
@@ -78,6 +81,13 @@ echo-flags:
 	@echo "CXX: $(TGT_CXXFLAGS)"
 	@echo "LD: $(TGT_LDFLAGS)"
 
+# Output directories
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+
+$(LIB_DIR):
+	mkdir -p $(LIB_DIR)
+
 # libopencm3
 clean_libopencm3:
 	rm -f submodules/libopencm3/lib/libopencm3_stm32f1.a
@@ -89,26 +99,37 @@ submodules/libopencm3/lib/libopencm3_stm32f1.a:
 libopencm3: submodules/libopencm3/lib/libopencm3_stm32f1.a
 
 # sensor node
-$(BUILD_DIR):
-	mkdir -p $(BUILD_DIR)
-
 elf: $(BUILD_DIR)/$(BINARY).elf
 
-bin: $(BUILD_DIR)/$(BINARY).bin
+bin: $(BUILD_DIR) $(LIB_DIR) $(BUILD_DIR)/$(BINARY).bin
 
 $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf
 	$(OBJCOPY) -Obinary $< $@
 
-$(BUILD_DIR)/%.elf: $(BUILD_DIR) $(OBJS) $(BME280_OBJS) libopencm3 $(LDSCRIPT)
-	$(LD) $(TGT_LDFLAGS) $(OBJS) $(BME280_OBJS) $(LDLIBS) -o $@
+$(BUILD_DIR)/%.elf: $(OBJS) libnewlib_syscalls libbme280 libopencm3 $(LDSCRIPT)
+	$(LD) $(TGT_LDFLAGS) $(OBJS) $(LDLIBS) -o $@
 	$(SIZE) $@
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(TGT_CXXFLAGS) -o $@ -c $<
 
-$(BUILD_DIR)/bme280.o: $(BME280_DIR)/bme280.c
-	# Bosch driver gives missing-field-initializers warning
-	$(CXX) $(TGT_CXXFLAGS) -Wno-missing-field-initializers -o $@ -c $<
+# Bosch BME280 driver
+libbme280: $(LIB_DIR)/libbme280.a
+
+$(LIB_DIR)/libbme280.a : $(LIB_DIR)/bme280.o
+	$(AR) rcs $@ $<
+
+$(LIB_DIR)/bme280.o: $(BME280_DIR)/bme280.c
+	$(CXX) $(TGT_CXXFLAGS) -Wno-missing-field-initializers -o $@ -c $< # Bosch driver gives missing-field-initializers warning
+
+#newlib syscalls
+libnewlib_syscalls: $(LIB_DIR)/libnewlib_syscalls.a
+
+$(LIB_DIR)/libnewlib_syscalls.a : $(LIB_DIR)/newlib_syscalls.o
+	$(AR) rcs $@ $<
+
+$(LIB_DIR)/newlib_syscalls.o: $(NEWLIB_SYSCALLS_DIR)/newlib_syscalls.cpp
+	$(CXX) $(TGT_CXXFLAGS) -o $@ -c $<
 
 # Style checks
 style-check:
@@ -121,7 +142,10 @@ style-fix:
 clean:
 	rm -rf $(BUILD_DIR)
 
-clean_all: clean clean_libopencm3
+clean_lib:
+	rm -rf $(LIB_DIR)
+
+clean_all: clean clean_lib clean_libopencm3
 
 # Flash
 flash: $(BUILD_DIR)/$(BINARY).bin
