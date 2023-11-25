@@ -31,7 +31,7 @@ class ESP8266:
     def _check_response_timeout(self, start: float) -> bool:
         return (time.time() - start) > self.response_timeout
 
-    def _send_cmd(self, cmd: str) -> bool:
+    def send_cmd(self, cmd: str) -> bool:
         print(f"Sending command: {cmd}...")
         self.serial.flushInput()
         self.serial.write(f"{cmd}\r\n".encode("utf-8"))
@@ -54,69 +54,73 @@ class ESP8266:
 
         return (not timed_out) and (not error)
 
-    def restart(self) -> bool:
-        res = self._send_cmd("AT+RST")
-        time.sleep(1)  # Wait for the board to reboot
-        return res
 
-    def echo_mode(self, enable: bool = False) -> bool:
-        """
-        Enable/disable echoing of AT commands
-        """
-        res = False
-        if enable:
-            res = self._send_cmd("ATE1")
-        else:
-            res = self._send_cmd("ATE0")
+def restart(esp: ESP8266) -> bool:
+    res = esp.send_cmd("AT+RST")
+    time.sleep(1)  # Wait for the board to reboot
+    return res
 
-        if not res:
-            print("Echo mode setting failed!")
-        return res
 
-    def smoke_test(self) -> bool:
-        """
-        Test that the module responds to some basic commands
-        """
+def echo_mode(esp: ESP8266, enable: bool = False) -> bool:
+    """
+    Enable/disable echoing of AT commands
+    """
+    res = False
+    if enable:
+        res = esp.send_cmd("ATE1")
+    else:
+        res = esp.send_cmd("ATE0")
 
-        # fmt: off
-        basic_commands = [
-            "AT",            # AT test
-            "AT+GMR",        # Version information
-            "AT+UART_CUR?",  # Current USART settings
-            "AT+UART_DEF?",  # Default USART settings, seems to return 0s if you have never set this
-            "AT+SYSRAM?",    # Remaining RAM size in bytes
-        ]
-        # fmt: on
+    if not res:
+        print("Echo mode setting failed!")
+    return res
 
-        return all(self._send_cmd(c) for c in basic_commands)
 
-    def wifi_test(self) -> bool:
-        """
-        Test connecting to WIFI
-        """
-        # Get some secrets from the environment
-        ssid = os.getenv("ESP_WIFI_SSID")
-        passwd = os.getenv("ESP_WIFI_PASSWD")
-        assert ssid is not None, "Failed to get SSID from the environment!"
-        assert passwd is not None, "Failed to get WIFI password from the environment!"
+def smoke_test(esp: ESP8266) -> bool:
+    """
+    Test that the module responds to some basic commands
+    """
 
-        # fmt: off
-        wifi_commands = [
-            "AT+CWMODE=3",                        # Set wifi mode to both
-            "AT+CWMODE?",                         # Check current WIFI mode: client (1), access point (2) or both (3)
-            "AT+CWDHCP_CUR=2,0",                  # Disable DHCP in all modes
-            "AT+CWDHCP_CUR=1,1",                  # Enable DHCP in client mode
-            "AT+CWDHCP_CUR?",                     # Check that DHCP is enabled in client mode
-            "AT+CWMODE=1",                        # Set wifi mode to client
-            "AT+CWMODE?",                         # Check current WIFI mode
-            "AT+CWLAP",                           # List access points
-            "AT+CWJAP_CUR?",                      # Check if we are already connected to an acces point
-            f'AT+CWJAP_CUR="{ssid}","{passwd}"',  # Connect to WIFI
-            "AT+CWQAP",                           # Disconnect
-        ]
-        # fmt: on
+    # fmt: off
+    basic_commands = [
+        "AT",            # AT test
+        "AT+GMR",        # Version information
+        "AT+UART_CUR?",  # Current USART settings
+        "AT+UART_DEF?",  # Default USART settings, seems to return 0s if you have never set this
+        "AT+SYSRAM?",    # Remaining RAM size in bytes
+    ]
+    # fmt: on
 
-        return all(self._send_cmd(c) for c in wifi_commands)
+    return all(esp.send_cmd(c) for c in basic_commands)
+
+
+def wifi_test(esp: ESP8266) -> bool:
+    """
+    Test connecting to WIFI
+    """
+    # Get some secrets from the environment
+    ssid = os.getenv("ESP_WIFI_SSID")
+    passwd = os.getenv("ESP_WIFI_PASSWD")
+    assert ssid is not None, "Failed to get SSID from the environment!"
+    assert passwd is not None, "Failed to get WIFI password from the environment!"
+
+    # fmt: off
+    wifi_commands = [
+        "AT+CWMODE=3",                        # Set wifi mode to both
+        "AT+CWMODE?",                         # Check current WIFI mode: client (1), access point (2) or both (3)
+        "AT+CWDHCP_CUR=2,0",                  # Disable DHCP in all modes
+        "AT+CWDHCP_CUR=1,1",                  # Enable DHCP in client mode
+        "AT+CWDHCP_CUR?",                     # Check that DHCP is enabled in client mode
+        "AT+CWMODE=1",                        # Set wifi mode to client
+        "AT+CWMODE?",                         # Check current WIFI mode
+        "AT+CWLAP",                           # List access points
+        "AT+CWJAP_CUR?",                      # Check if we are already connected to an acces point
+        f'AT+CWJAP_CUR="{ssid}","{passwd}"',  # Connect to WIFI
+        "AT+CWQAP",                           # Disconnect
+    ]
+    # fmt: on
+
+    return all(esp.send_cmd(c) for c in wifi_commands)
 
 
 def main() -> NoReturn:
@@ -128,11 +132,11 @@ def main() -> NoReturn:
     esp = ESP8266(serial_dev)
 
     tests: list[Callable[[], bool]] = [
-        esp.restart,
-        partial(esp.echo_mode, True),
-        partial(esp.echo_mode, False),
-        esp.smoke_test,
-        esp.wifi_test,
+        partial(restart, esp),
+        partial(echo_mode, esp, True),
+        partial(echo_mode, esp, False),
+        partial(smoke_test, esp),
+        partial(wifi_test, esp),
     ]
     if not all(t() for t in tests):
         exit(1)
