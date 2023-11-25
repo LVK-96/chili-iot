@@ -1,11 +1,5 @@
 #include "BlinkyLED.h"
 
-GPIOLED::GPIOLED(const GPIOPin& pin)
-    : BlinkyLED()
-    , pin(pin)
-{
-}
-
 void GPIOLED::on() const
 {
     pin.port.set_pins(pin.pin_nro);

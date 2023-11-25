@@ -1,11 +1,5 @@
 #include "USART.h"
 
-USART::USART(BluePillUSART usart, rcc_periph_clken clken, rcc_periph_rst rst)
-    : Peripheral(clken, rst)
-    , usart(static_cast<uint32_t>(usart))
-{
-}
-
 void USART::set_baudrate(unsigned int baudrate)
 {
     usart_set_baudrate(usart, baudrate);

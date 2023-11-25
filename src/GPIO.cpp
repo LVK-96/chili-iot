@@ -3,12 +3,6 @@
 
 #include "GPIO.h"
 
-GPIOPort::GPIOPort(BluePillGPIOPort port, rcc_periph_clken clken, rcc_periph_rst rst)
-    : Peripheral(clken, rst)
-    , port(static_cast<uint32_t>(port))
-{
-}
-
 void GPIOPort::set_pins(uint16_t pins) const
 {
     gpio_set(port, pins);

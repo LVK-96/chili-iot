@@ -3,12 +3,6 @@
 #include "I2C.h"
 #include "Logger.h"
 
-I2C::I2C(BluePillI2C i2c_dev, rcc_periph_clken clken, rcc_periph_rst rst)
-    : Peripheral(clken, rst)
-    , i2c_dev(static_cast<unsigned int>(i2c_dev))
-{
-}
-
 void I2C::setup() const
 {
     I2C_CR1(i2c_dev) &= ~I2C_CR1_STOP; // Clear stop

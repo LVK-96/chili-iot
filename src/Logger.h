@@ -17,7 +17,10 @@ public:
         SILENT = 3
     };
 
-    Logger(LogLevel verbosity);
+    constexpr Logger(LogLevel verbosity) noexcept
+        : verbosity(verbosity)
+    {
+    }
     void set_verbosity(LogLevel verbosity);
     LogLevel get_verbosity() const;
 
@@ -35,7 +38,11 @@ protected:
 
 class USARTLogger : public Logger {
 public:
-    USARTLogger(LogLevel verbosity, const USART& usart);
+    constexpr USARTLogger(LogLevel verbosity, const USART& usart) noexcept
+        : Logger(verbosity)
+        , usart(usart)
+    {
+    }
 
 private:
     const USART& usart;

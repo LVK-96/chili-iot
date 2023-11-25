@@ -33,7 +33,11 @@ enum class GPIOFunction : uint8_t {
 
 class GPIOPort : public Peripheral {
 public:
-    GPIOPort(BluePillGPIOPort port, rcc_periph_clken clken, rcc_periph_rst rst);
+    constexpr GPIOPort(BluePillGPIOPort port, rcc_periph_clken clken, rcc_periph_rst rst) noexcept
+        : Peripheral(clken, rst)
+        , port(static_cast<uint32_t>(port))
+    {
+    }
 
     // You cannot enable/disable GPIO ports
     void enable() override { }
@@ -51,6 +55,11 @@ private:
 };
 
 struct GPIOPin {
-    uint16_t pin_nro;
+    constexpr GPIOPin(uint16_t pin_nro, const GPIOPort& port)
+        : pin_nro(pin_nro)
+        , port(port)
+    {
+    }
+    const uint16_t pin_nro;
     const GPIOPort& port;
 };

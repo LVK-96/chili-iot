@@ -17,7 +17,19 @@ public:
 
 class BME280TemperatureSensor : public TemperatureSensor {
 public:
-    BME280TemperatureSensor(const Logger& logger, const I2C& i2c);
+    constexpr BME280TemperatureSensor(const Logger& logger, const I2C& i2c) noexcept
+        : logger(logger)
+        , bme280({ .chip_id = BME280_I2C_ADDR_SEC,
+              .intf = BME280_I2C_INTF,
+              .intf_ptr = (void*)&i2c,
+              .intf_rslt = 0,
+              .read = bme280_read,
+              .write = bme280_write,
+              .delay_us = bme280_delay_us,
+              .calib_data = {} })
+    {
+    }
+
     _system::ErrorCode init();
     std::optional<double> read() const override;
 

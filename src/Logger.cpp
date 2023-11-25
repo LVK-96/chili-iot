@@ -10,11 +10,6 @@
 #include "System.h"
 #include "USART.h"
 
-Logger::Logger(LogLevel verbosity)
-    : verbosity(verbosity)
-{
-}
-
 void Logger::set_verbosity(LogLevel verbosity) { verbosity = verbosity; }
 
 Logger::LogLevel Logger::get_verbosity() const
@@ -57,12 +52,6 @@ void Logger::error(std::string_view msg, _system::ErrorCode code) const
 
     log(": ", LogLevel::ERROR);
     log(msg, LogLevel::ERROR);
-}
-
-USARTLogger::USARTLogger(LogLevel verbosity, const USART& usart)
-    : Logger(verbosity)
-    , usart(usart)
-{
 }
 
 _system::ErrorCode USARTLogger::_log(std::string_view msg) const

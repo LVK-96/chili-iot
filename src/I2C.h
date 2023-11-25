@@ -19,7 +19,11 @@ enum class BluePillI2C : unsigned int {
 
 class I2C : public Peripheral {
 public:
-    I2C(BluePillI2C i2c_dev, rcc_periph_clken clken, rcc_periph_rst rst);
+    constexpr I2C(BluePillI2C i2c_dev, rcc_periph_clken clken, rcc_periph_rst rst) noexcept
+        : Peripheral(clken, rst)
+        , i2c_dev(static_cast<unsigned int>(i2c_dev))
+    {
+    }
     void disable() override;
     void enable() override;
     void setup() const;

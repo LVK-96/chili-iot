@@ -41,7 +41,11 @@ enum class USARTFlowControl : uint32_t {
 
 class USART : public Peripheral {
 public:
-    USART(BluePillUSART usart_periph, rcc_periph_clken clken, rcc_periph_rst rst);
+    constexpr USART(BluePillUSART usart, rcc_periph_clken clken, rcc_periph_rst rst) noexcept
+        : Peripheral(clken, rst)
+        , usart(static_cast<uint32_t>(usart))
+    {
+    }
 
     void set_baudrate(unsigned int baudrate);
     void set_databits(unsigned int databits);

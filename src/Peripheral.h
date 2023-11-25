@@ -4,12 +4,11 @@
 
 class Peripheral {
 public:
-    Peripheral(rcc_periph_clken clken, rcc_periph_rst rst)
+    constexpr Peripheral(rcc_periph_clken clken, rcc_periph_rst rst) noexcept
         : clken(clken)
         , rst(rst)
     {
     }
-    virtual ~Peripheral() = 0;
     virtual void enable() = 0;
     virtual void disable() = 0;
 
@@ -42,5 +41,3 @@ private:
     const rcc_periph_clken clken;
     const rcc_periph_rst rst;
 };
-
-inline Peripheral::~Peripheral() { }

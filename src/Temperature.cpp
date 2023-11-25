@@ -9,21 +9,6 @@
 #include "System.h"
 #include "Temperature.h"
 
-BME280TemperatureSensor::BME280TemperatureSensor(const Logger& logger, const I2C& i2c)
-    : logger(logger)
-    , bme280({
-        .chip_id = BME280_I2C_ADDR_SEC,
-        .intf = BME280_I2C_INTF,
-        .intf_ptr = (void*)&i2c,
-        .intf_rslt = 0,
-        .read = bme280_read,
-        .write = bme280_write,
-        .delay_us = bme280_delay_us,
-        .calib_data = {}
-    })
-{
-}
-
 _system::ErrorCode BME280TemperatureSensor::init()
 {
     int8_t res = bme280_init(&bme280);
