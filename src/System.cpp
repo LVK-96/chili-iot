@@ -22,7 +22,7 @@ namespace peripherals {
 namespace modules {
     GPIOLED led { peripherals::led_pin };
     USARTLogger logger { Logger::LogLevel::INFO, peripherals::usart1 };
-    BME280TemperatureSensor temperature { logger, peripherals::i2c1 };
+    BME280TemperatureSensor temperature { logger, peripherals::i2c1, BME280I2CBusAddr::SECONDARY }; // The Waveshare BME280 module defaults to the secondary I2C address (0x77)
 }
 
 void nop(unsigned int n)

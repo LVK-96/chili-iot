@@ -27,3 +27,17 @@ std::optional<double> BME280TemperatureSensor::read() const
     }
     return read_data.temperature;
 }
+
+void BME280TemperatureSensor::write_reg(uint8_t addr, std::span<const uint8_t> data)
+{
+    // Write BME280 register file @addr
+    i2c.write(bme280_addr, addr);
+    i2c.write(bme280_addr, data);
+}
+
+void BME280TemperatureSensor::read_reg(uint8_t addr, std::span<uint8_t> data)
+{
+    // Read BME280 register file @addr
+    i2c.write(bme280_addr, addr);
+    i2c.read(bme280_addr, data);
+}
