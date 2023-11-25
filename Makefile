@@ -133,10 +133,10 @@ $(LIB_DIR)/newlib_syscalls.o: $(NEWLIB_SYSCALLS_DIR)/newlib_syscalls.cpp
 
 # Style checks
 style-check:
-	clang-format --dry-run src/*
+	clang-format --Werror --dry-run src/** newlib_syscalls/**
 
 style-fix:
-	clang-format -i src/*
+	clang-format --Werror -i src/** newlib_syscalls/**
 
 # Clean
 clean:
