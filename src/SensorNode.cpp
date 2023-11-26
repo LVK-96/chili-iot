@@ -1,6 +1,4 @@
 #include <cstdio>
-#include <format>
-#include <iostream>
 #include <memory>
 #include <utility>
 
@@ -26,7 +24,9 @@ void SensorNode::main_loop()
         // Read & log temperature
         auto read_temperature = temperature.read();
         if (read_temperature) {
-            printf("Temperature: %.2lf\n", read_temperature.value());
+            char buf[20];
+            snprintf(buf, 20, "Temperature: %.2lf\n", read_temperature.value());
+            logger.log(buf);
         }
 
         // Wait a bit and do it again

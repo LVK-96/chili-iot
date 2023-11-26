@@ -1,5 +1,4 @@
 #include <span>
-#include <string>
 
 #include <bme280.h>
 #include <libopencm3/stm32/gpio.h>

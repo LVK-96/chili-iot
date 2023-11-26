@@ -24,7 +24,7 @@ STFLASH          := $(shell which st-flash)
 # Compiler & linker flags
 FP_FLAGS     += -msoft-float
 ARCH_FLAGS   := -mthumb -mcpu=cortex-m3 -mfix-cortex-m3-ldrd $(FP_FLAGS)
-OPT_FLAGS    := -Os -fno-exceptions -ffunction-sections -fdata-sections -Wl,--gc-sections -fno-stack-protector -flto
+OPT_FLAGS    := -Os -fno-exceptions -flto -ffunction-sections -fdata-sections
 WFLAGS       := -Wall -Wextra -Werror
 DEFINES      := -DSTM32F1
 
@@ -47,15 +47,16 @@ TGT_CFLAGS += $(ARCH_FLAGS)
 TGT_CFLAGS += $(DEFINES)
 
 # Linker flags
-TGT_LDFLAGS	 += --static -nostartfiles
+TGT_LDFLAGS	 := --static -nostartfiles
 TGT_LDFLAGS	 += -T$(LDSCRIPT)
 TGT_LDFLAGS	 += $(ARCH_FLAGS)
-TGT_LDFLAGS	 += $(OPT_FLAGS)
 TGT_LDFLAGS	 += -Wl,-Map=$(BUILD_DIR)/$(*).map
+TGT_LDFLAGS  += -Wl,--gc-sections
+TGT_LDFLAGS  += -L$(LIB_DIR)
+TGT_LDFLAGS  += -L$(OPENCM3_DIR)/lib
+
 LDLIBS       += --specs=nosys.specs
-LDLIBS       += -Wl,--start-group -L$(LIB_DIR) -lnewlib_syscalls -lc -lgcc -lnosys -Wl,--end-group
-LDLIBS       += -L$(OPENCM3_DIR)/lib -lopencm3_stm32f1
-LDLIBS       += -L$(LIB_DIR) -lbme280
+LDLIBS       += -lopencm3_stm32f1 -lbme280
 
 # Pass C flags to libopencm3 makefiles
 CFLAGS += $(TGT_CFLAGS)
@@ -106,7 +107,7 @@ bin: $(BUILD_DIR) $(LIB_DIR) $(BUILD_DIR)/$(BINARY).bin
 $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf
 	$(OBJCOPY) -Obinary $< $@
 
-$(BUILD_DIR)/%.elf: $(OBJS) libnewlib_syscalls libbme280 libopencm3 $(LDSCRIPT)
+$(BUILD_DIR)/%.elf: $(OBJS) libbme280 libopencm3 $(LDSCRIPT)
 	$(LD) $(TGT_LDFLAGS) $(OBJS) $(LDLIBS) -o $@
 	$(SIZE) $@
 
@@ -121,15 +122,6 @@ $(LIB_DIR)/libbme280.a : $(LIB_DIR)/bme280.o
 
 $(LIB_DIR)/bme280.o: $(BME280_DIR)/bme280.c
 	$(CXX) $(TGT_CXXFLAGS) -Wno-missing-field-initializers -o $@ -c $< # Bosch driver gives missing-field-initializers warning
-
-#newlib syscalls
-libnewlib_syscalls: $(LIB_DIR)/libnewlib_syscalls.a
-
-$(LIB_DIR)/libnewlib_syscalls.a : $(LIB_DIR)/newlib_syscalls.o
-	$(AR) rcs $@ $<
-
-$(LIB_DIR)/newlib_syscalls.o: $(NEWLIB_SYSCALLS_DIR)/newlib_syscalls.cpp
-	$(CXX) $(TGT_CXXFLAGS) -o $@ -c $<
 
 # Style checks
 style-check:
