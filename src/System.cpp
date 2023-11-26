@@ -16,6 +16,7 @@ namespace peripherals {
     GPIOPort gpio_c { BluePillGPIOPort::C, RCC_GPIOC, RST_GPIOC };
     GPIOPin led_pin { LED_PIN_NRO, gpio_c };
     USART usart1 { BluePillUSART::_1, RCC_USART1, RST_USART1 };
+    USART usart2 { BluePillUSART::_2, RCC_USART2, RST_USART2 };
     I2C i2c1 { BluePillI2C::_1, RCC_I2C1, RST_I2C1 };
 }
 
@@ -37,7 +38,7 @@ void peripheral_setup()
 {
     // GPIO A: USART
     peripherals::gpio_a.clk_enable();
-    peripherals::gpio_a.setup_pins(LOGGER_TX_PIN_NRO, GPIOMode::OUTPUT_50_MHZ, GPIOFunction::OUTPUT_ALTFN_PUSHPULL);
+    peripherals::gpio_a.setup_pins(LOGGER_TX_PIN_NRO | NETWORK_TX_PIN_NRO | NETWORK_RX_PIN_NRO, GPIOMode::OUTPUT_50_MHZ, GPIOFunction::OUTPUT_ALTFN_PUSHPULL);
 
     // GPIO B: I2C
     peripherals::gpio_b.clk_enable();
@@ -48,11 +49,8 @@ void peripheral_setup()
     peripherals::gpio_c.setup_pins(LED_PIN_NRO, GPIOMode::OUTPUT_2_MHZ, GPIOFunction::OUTPUT_PUSHPULL);
 
     // USART
-    peripherals::usart1.clk_enable();
-    peripherals::usart1.reset_pulse();
-    peripherals::usart1.disable();
-    peripherals::usart1.setup(BAUDRATE, DATABITS, USARTStopBits::_1, USARTMode::TX, USARTParity::NONE, USARTFlowControl::NONE);
-    peripherals::usart1.enable();
+    peripherals::usart1.clken_reset_disable_setup_enable(LOGGER_BAUDRATE, LOGGER_DATABITS, USARTStopBits::_1, USARTMode::TX, USARTParity::NONE, USARTFlowControl::NONE);
+    peripherals::usart2.clken_reset_disable_setup_enable(NETWORK_BAUDRATE, NETWORK_DATABITS, USARTStopBits::_1, USARTMode::TX_RX, USARTParity::NONE, USARTFlowControl::NONE);
 
     // I2C
     peripherals::i2c1.clk_enable();

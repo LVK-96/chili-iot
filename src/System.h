@@ -50,12 +50,16 @@ constexpr uint32_t SYSTICK_RELOAD_VALUE = UINT32_MAX & mask32<SYSTICK_BITS>();
 // What pins are used
 constexpr unsigned int LED_PIN_NRO = GPIO13;
 constexpr unsigned int LOGGER_TX_PIN_NRO = GPIO_USART1_TX;
+constexpr unsigned int NETWORK_TX_PIN_NRO = GPIO_USART2_TX;
+constexpr unsigned int NETWORK_RX_PIN_NRO = GPIO_USART2_RX;
 constexpr unsigned int I2C1_SCL_PIN_NRO = GPIO_I2C1_SCL;
 constexpr unsigned int I2C1_SDA_PIN_NRO = GPIO_I2C1_SDA;
 
 // USART parameters
-constexpr unsigned int BAUDRATE = 38400;
-constexpr unsigned int DATABITS = 8;
+constexpr unsigned int LOGGER_BAUDRATE = 38400;
+constexpr unsigned int LOGGER_DATABITS = 8;
+constexpr unsigned int NETWORK_BAUDRATE = 115200;
+constexpr unsigned int NETWORK_DATABITS = 8;
 
 namespace peripherals {
     extern GPIOPort gpio_a;
@@ -63,6 +67,7 @@ namespace peripherals {
     extern GPIOPort gpio_c;
     extern GPIOPin led_pin;
     extern USART usart1;
+    extern USART usart2;
     extern I2C i2c1;
 };
 

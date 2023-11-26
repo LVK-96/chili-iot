@@ -51,6 +51,15 @@ void USART::setup(unsigned int baudrate, unsigned int databits, USARTStopBits st
     is_setup = true;
 }
 
+void USART::clken_reset_disable_setup_enable(unsigned int baudrate, unsigned int databits, USARTStopBits stopbits, USARTMode mode, USARTParity parity, USARTFlowControl flowcontrol)
+{
+    clk_enable();
+    reset_pulse();
+    disable();
+    setup(baudrate, databits, stopbits, mode, parity, flowcontrol);
+    enable();
+}
+
 void USART::send_blocking(char c) const
 {
     usart_send_blocking(usart, c);
