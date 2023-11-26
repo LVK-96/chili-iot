@@ -39,8 +39,8 @@ public:
 
     _system::ErrorCode init();
     std::optional<double> read() const override;
-    void write_reg(uint8_t addr, std::span<const uint8_t>);
-    void read_reg(uint8_t addr, std::span<uint8_t>);
+    void write_reg(uint8_t addr, std::span<const uint8_t>) const;
+    void read_reg(uint8_t addr, std::span<uint8_t>) const;
 
 private:
     const Logger& logger;
