@@ -72,29 +72,29 @@ BME280_DEPENDS   := $(patsubst $(BME280_DIR)/%.c, $(LIB_DIR)/%.d, $(BME280_SRC_F
 
 # Makefile debug
 echo-src:
-    @echo "SRC_FILES: $(SRC_FILES)"
+	@echo "SRC_FILES: $(SRC_FILES)"
 
 echo-objs:
-    @echo "OBJS: $(OBJS)"
+	@echo "OBJS: $(OBJS)"
 
 echo-flags:
-    @echo "CXX: $(TGT_CXXFLAGS)"
-    @echo "LD: $(TGT_LDFLAGS)"
+	@echo "CXX: $(TGT_CXXFLAGS)"
+	@echo "LD: $(TGT_LDFLAGS)"
 
 # Output directories
 $(BUILD_DIR):
-    mkdir -p $(BUILD_DIR)
+	mkdir -p $(BUILD_DIR)
 
 $(LIB_DIR):
-    mkdir -p $(LIB_DIR)
+	mkdir -p $(LIB_DIR)
 
 # libopencm3
 clean_libopencm3:
-    rm -f submodules/libopencm3/lib/libopencm3_stm32f1.a
-    -$(MAKE) -$(MAKEFLAGS) -C submodules/libopencm3 clean
+	rm -f submodules/libopencm3/lib/libopencm3_stm32f1.a
+	-$(MAKE) -$(MAKEFLAGS) -C submodules/libopencm3 clean
 
 submodules/libopencm3/lib/libopencm3_stm32f1.a:
-    $(MAKE) -C submodules/libopencm3 TARGETS=stm32/f1
+	$(MAKE) -C submodules/libopencm3 TARGETS=stm32/f1
 
 libopencm3: submodules/libopencm3/lib/libopencm3_stm32f1.a
 
@@ -104,58 +104,58 @@ elf: $(BUILD_DIR)/$(BINARY).elf
 bin: $(BUILD_DIR) $(LIB_DIR) $(BUILD_DIR)/$(BINARY).bin
 
 $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf
-    $(OBJCOPY) -Obinary $< $@
+	$(OBJCOPY) -Obinary $< $@
 
 $(BUILD_DIR)/%.elf: $(OBJS) libnewlib_syscalls libbme280 libopencm3 $(LDSCRIPT)
-    $(LD) $(TGT_LDFLAGS) $(OBJS) $(LDLIBS) -o $@
-    $(SIZE) $@
+	$(LD) $(TGT_LDFLAGS) $(OBJS) $(LDLIBS) -o $@
+	$(SIZE) $@
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
-    $(CXX) $(TGT_CXXFLAGS) -o $@ -c $<
+	$(CXX) $(TGT_CXXFLAGS) -o $@ -c $<
 
 # Bosch BME280 driver
 libbme280: $(LIB_DIR)/libbme280.a
 
 $(LIB_DIR)/libbme280.a : $(LIB_DIR)/bme280.o
-    $(AR) rcs $@ $<
+	$(AR) rcs $@ $<
 
 $(LIB_DIR)/bme280.o: $(BME280_DIR)/bme280.c
-    $(CXX) $(TGT_CXXFLAGS) -Wno-missing-field-initializers -o $@ -c $< # Bosch driver gives missing-field-initializers warning
+	$(CXX) $(TGT_CXXFLAGS) -Wno-missing-field-initializers -o $@ -c $< # Bosch driver gives missing-field-initializers warning
 
 #newlib syscalls
 libnewlib_syscalls: $(LIB_DIR)/libnewlib_syscalls.a
 
 $(LIB_DIR)/libnewlib_syscalls.a : $(LIB_DIR)/newlib_syscalls.o
-    $(AR) rcs $@ $<
+	$(AR) rcs $@ $<
 
 $(LIB_DIR)/newlib_syscalls.o: $(NEWLIB_SYSCALLS_DIR)/newlib_syscalls.cpp
-    $(CXX) $(TGT_CXXFLAGS) -o $@ -c $<
+	$(CXX) $(TGT_CXXFLAGS) -o $@ -c $<
 
 # Style checks
 style-check:
-    clang-format --Werror --dry-run src/** newlib_syscalls/**
+	clang-format --Werror --dry-run src/** newlib_syscalls/**
 
 style-fix:
-    clang-format --Werror -i src/** newlib_syscalls/**
+	clang-format --Werror -i src/** newlib_syscalls/**
 
 # Clean
 clean:
-    rm -rf $(BUILD_DIR)
+	rm -rf $(BUILD_DIR)
 
 clean_lib:
-    rm -rf $(LIB_DIR)
+	rm -rf $(LIB_DIR)
 
 clean_all: clean clean_lib clean_libopencm3
 
 # Flash
 flash: $(BUILD_DIR)/$(BINARY).bin
-    $(STFLASH) --connect-under-reset $(FLASHSIZE) write $< 0x8000000
+	$(STFLASH) --connect-under-reset $(FLASHSIZE) write $< 0x8000000
 
 # Disassemble
 disassemble: $(BUILD_DIR)/$(BINARY).dump
 
 $(BUILD_DIR)/$(BINARY).dump: $(BUILD_DIR)/$(BINARY).elf
-    $(OBJDUMP) --wide --syms --source --line-numbers $< >$@
+	$(OBJDUMP) --wide --syms --source --line-numbers $< >$@
 
 # Default target
 default: bin
