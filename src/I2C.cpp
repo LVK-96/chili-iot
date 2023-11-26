@@ -10,15 +10,9 @@ void I2C::setup() const
     i2c_set_own_7bit_slave_address(I2C2, 0xff); // Why is this necessary???
 }
 
-void I2C::enable()
-{
-    i2c_peripheral_enable(i2c_dev);
-}
+void I2C::enable() { i2c_peripheral_enable(i2c_dev); }
 
-void I2C::disable()
-{
-    i2c_peripheral_disable(i2c_dev);
-}
+void I2C::disable() { i2c_peripheral_disable(i2c_dev); }
 
 _system::ErrorCode I2C::write(uint8_t addr, std::span<const uint8_t> data) const
 {
@@ -37,7 +31,4 @@ _system::ErrorCode I2C::write(uint8_t addr, uint8_t data) const
     return write(addr, std::span<const uint8_t, 1>(&data, 1));
 }
 
-_system::ErrorCode I2C::read(uint8_t addr, uint8_t& data) const
-{
-    return read(addr, std::span<uint8_t, 1>(&data, 1));
-}
+_system::ErrorCode I2C::read(uint8_t addr, uint8_t& data) const { return read(addr, std::span<uint8_t, 1>(&data, 1)); }

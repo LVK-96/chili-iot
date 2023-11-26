@@ -10,12 +10,7 @@
 
 class Logger {
 public:
-    enum class LogLevel {
-        INFO = 0,
-        WARNING = 1,
-        ERROR = 2,
-        SILENT = 3
-    };
+    enum class LogLevel { INFO = 0, WARNING = 1, ERROR = 2, SILENT = 3 };
 
     constexpr Logger(LogLevel verbosity) noexcept
         : verbosity(verbosity)

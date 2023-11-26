@@ -14,7 +14,6 @@ private:
     const TemperatureSensor& temperature;
 
 public:
-    SensorNode(const BlinkyLED& led, const Logger& logger,
-        const TemperatureSensor& temperature);
+    SensorNode(const BlinkyLED& led, const Logger& logger, const TemperatureSensor& temperature);
     [[noreturn]] void main_loop();
 };

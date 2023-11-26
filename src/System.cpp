@@ -23,7 +23,8 @@ namespace peripherals {
 namespace modules {
     GPIOLED led { peripherals::led_pin };
     USARTLogger logger { Logger::LogLevel::INFO, peripherals::usart1 };
-    BME280TemperatureSensor temperature { logger, peripherals::i2c1, BME280I2CBusAddr::SECONDARY }; // The Waveshare BME280 module defaults to the secondary I2C address (0x77)
+    BME280TemperatureSensor temperature { logger, peripherals::i2c1,
+        BME280I2CBusAddr::SECONDARY }; // The Waveshare BME280 module defaults to the secondary I2C address (0x77)
 }
 
 void nop(unsigned int n)
@@ -38,19 +39,23 @@ void peripheral_setup()
 {
     // GPIO A: USART
     peripherals::gpio_a.clk_enable();
-    peripherals::gpio_a.setup_pins(LOGGER_TX_PIN_NRO | NETWORK_TX_PIN_NRO | NETWORK_RX_PIN_NRO, GPIOMode::OUTPUT_50_MHZ, GPIOFunction::OUTPUT_ALTFN_PUSHPULL);
+    peripherals::gpio_a.setup_pins(LOGGER_TX_PIN_NRO | NETWORK_TX_PIN_NRO | NETWORK_RX_PIN_NRO, GPIOMode::OUTPUT_50_MHZ,
+        GPIOFunction::OUTPUT_ALTFN_PUSHPULL);
 
     // GPIO B: I2C
     peripherals::gpio_b.clk_enable();
-    peripherals::gpio_b.setup_pins(I2C1_SCL_PIN_NRO | I2C1_SDA_PIN_NRO, GPIOMode::OUTPUT_50_MHZ, GPIOFunction::OUTPUT_ALTFN_OPENDRAIN);
+    peripherals::gpio_b.setup_pins(
+        I2C1_SCL_PIN_NRO | I2C1_SDA_PIN_NRO, GPIOMode::OUTPUT_50_MHZ, GPIOFunction::OUTPUT_ALTFN_OPENDRAIN);
 
     // GPIOC: LED
     peripherals::gpio_c.clk_enable();
     peripherals::gpio_c.setup_pins(LED_PIN_NRO, GPIOMode::OUTPUT_2_MHZ, GPIOFunction::OUTPUT_PUSHPULL);
 
     // USART
-    peripherals::usart1.clken_reset_disable_setup_enable(LOGGER_BAUDRATE, LOGGER_DATABITS, USARTStopBits::_1, USARTMode::TX, USARTParity::NONE, USARTFlowControl::NONE);
-    peripherals::usart2.clken_reset_disable_setup_enable(NETWORK_BAUDRATE, NETWORK_DATABITS, USARTStopBits::_1, USARTMode::TX_RX, USARTParity::NONE, USARTFlowControl::NONE);
+    peripherals::usart1.clken_reset_disable_setup_enable(
+        LOGGER_BAUDRATE, LOGGER_DATABITS, USARTStopBits::_1, USARTMode::TX, USARTParity::NONE, USARTFlowControl::NONE);
+    peripherals::usart2.clken_reset_disable_setup_enable(NETWORK_BAUDRATE, NETWORK_DATABITS, USARTStopBits::_1,
+        USARTMode::TX_RX, USARTParity::NONE, USARTFlowControl::NONE);
 
     // I2C
     peripherals::i2c1.clk_enable();
@@ -74,10 +79,7 @@ static void systick_setup()
     systick_counter_enable();
 }
 
-static ErrorCode module_setup()
-{
-    return modules::temperature.init();
-}
+static ErrorCode module_setup() { return modules::temperature.init(); }
 
 ErrorCode setup()
 {

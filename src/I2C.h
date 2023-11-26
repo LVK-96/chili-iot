@@ -12,10 +12,7 @@
 
 class Logger;
 
-enum class BluePillI2C : unsigned int {
-    _1 = I2C1,
-    _2 = I2C2
-};
+enum class BluePillI2C : unsigned int { _1 = I2C1, _2 = I2C2 };
 
 class I2C : public Peripheral {
 public:

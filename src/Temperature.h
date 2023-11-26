@@ -15,10 +15,7 @@ public:
     virtual std::optional<double> read() const = 0;
 };
 
-enum class BME280I2CBusAddr : uint8_t {
-    PRIMARY = BME280_I2C_ADDR_PRIM,
-    SECONDARY = BME280_I2C_ADDR_SEC
-};
+enum class BME280I2CBusAddr : uint8_t { PRIMARY = BME280_I2C_ADDR_PRIM, SECONDARY = BME280_I2C_ADDR_SEC };
 
 class BME280TemperatureSensor : public TemperatureSensor {
 public:
@@ -65,8 +62,5 @@ private:
         return BME280_INTF_RET_SUCCESS;
     }
 
-    static void bme280_delay_us(uint32_t period, [[maybe_unused]] void* intf_ptr)
-    {
-        _system::sleep_us(period);
-    }
+    static void bme280_delay_us(uint32_t period, [[maybe_unused]] void* intf_ptr) { _system::sleep_us(period); }
 };

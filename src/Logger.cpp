@@ -12,10 +12,7 @@
 
 void Logger::set_verbosity(LogLevel verbosity) { verbosity = verbosity; }
 
-Logger::LogLevel Logger::get_verbosity() const
-{
-    return verbosity;
-}
+Logger::LogLevel Logger::get_verbosity() const { return verbosity; }
 
 void Logger::log(std::string_view msg, LogLevel level) const
 {

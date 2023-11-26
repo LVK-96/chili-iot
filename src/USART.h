@@ -7,11 +7,7 @@
 
 #include "Peripheral.h"
 
-enum class BluePillUSART : uint32_t {
-    _1 = USART1,
-    _2 = USART2,
-    _3 = USART3
-};
+enum class BluePillUSART : uint32_t { _1 = USART1, _2 = USART2, _3 = USART3 };
 
 enum class USARTStopBits : uint32_t {
     _1 = USART_STOPBITS_1,
@@ -26,11 +22,7 @@ enum class USARTMode : uint32_t {
     TX_RX = USART_MODE_TX_RX,
 };
 
-enum class USARTParity : uint32_t {
-    NONE = USART_PARITY_NONE,
-    EVEN = USART_PARITY_EVEN,
-    ODD = USART_PARITY_ODD
-};
+enum class USARTParity : uint32_t { NONE = USART_PARITY_NONE, EVEN = USART_PARITY_EVEN, ODD = USART_PARITY_ODD };
 
 enum class USARTFlowControl : uint32_t {
     NONE = USART_FLOWCONTROL_NONE,
@@ -53,10 +45,12 @@ public:
     void set_mode(USARTMode);
     void set_parity(USARTParity);
     void set_flow_control(USARTFlowControl);
-    void setup(unsigned int baudrate, unsigned int databits, USARTStopBits stopbits, USARTMode mode, USARTParity parity, USARTFlowControl flowcontrol);
+    void setup(unsigned int baudrate, unsigned int databits, USARTStopBits stopbits, USARTMode mode, USARTParity parity,
+        USARTFlowControl flowcontrol);
     void disable() override;
     void enable() override;
-    void clken_reset_disable_setup_enable(unsigned int baudrate, unsigned int databits, USARTStopBits stopbits, USARTMode mode, USARTParity parity, USARTFlowControl flowcontrol);
+    void clken_reset_disable_setup_enable(unsigned int baudrate, unsigned int databits, USARTStopBits stopbits,
+        USARTMode mode, USARTParity parity, USARTFlowControl flowcontrol);
     void send_blocking(char c) const;
     bool get_is_setup() const;
 

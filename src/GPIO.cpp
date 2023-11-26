@@ -3,25 +3,13 @@
 
 #include "GPIO.h"
 
-void GPIOPort::set_pins(uint16_t pins) const
-{
-    gpio_set(port, pins);
-}
+void GPIOPort::set_pins(uint16_t pins) const { gpio_set(port, pins); }
 
-void GPIOPort::clear_pins(uint16_t pins) const
-{
-    gpio_clear(port, pins);
-}
+void GPIOPort::clear_pins(uint16_t pins) const { gpio_clear(port, pins); }
 
-void GPIOPort::toggle_pins(uint16_t pins) const
-{
-    gpio_toggle(port, pins);
-}
+void GPIOPort::toggle_pins(uint16_t pins) const { gpio_toggle(port, pins); }
 
-uint16_t GPIOPort::get_pins(uint16_t pins) const
-{
-    return gpio_get(port, pins);
-}
+uint16_t GPIOPort::get_pins(uint16_t pins) const { return gpio_get(port, pins); }
 
 void GPIOPort::setup_pins(uint16_t pins, GPIOMode mode, GPIOFunction function)
 {

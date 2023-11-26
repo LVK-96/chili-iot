@@ -8,11 +8,7 @@
 
 #include "Peripheral.h"
 
-enum class BluePillGPIOPort : uint32_t {
-    A = GPIOA,
-    B = GPIOB,
-    C = GPIOC
-};
+enum class BluePillGPIOPort : uint32_t { A = GPIOA, B = GPIOB, C = GPIOC };
 
 enum class GPIOMode : uint8_t {
     INPUT = GPIO_MODE_INPUT,

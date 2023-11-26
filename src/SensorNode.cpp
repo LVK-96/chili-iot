@@ -10,8 +10,7 @@
 #include "System.h"
 #include "Temperature.h"
 
-SensorNode::SensorNode(const BlinkyLED& led, const Logger& logger,
-    const TemperatureSensor& temperature)
+SensorNode::SensorNode(const BlinkyLED& led, const Logger& logger, const TemperatureSensor& temperature)
     : led(led)
     , logger(logger)
     , temperature(temperature)
