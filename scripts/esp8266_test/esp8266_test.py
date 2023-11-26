@@ -1,17 +1,23 @@
 #!/usr/bin/env python3
 
-# A little script I made to learn/test the ESP8266 AT commands for this project
+# A little to learn/test the ESP8266 AT commands for this project
 
 import time
 import os
+import itertools
 from functools import partial
 from typing import NoReturn, Callable
+import concurrent.futures
+import multiprocessing
 
 import serial  # type: ignore
 
+import udp_server
+
 
 class ESP8266:
-    ok_resps = ["OK", "ready", "no change"]
+    ok_resps = ["OK", "ready", "no change", "SEND OK"]
+
     err_resps = ["ERROR"]
 
     def __init__(
@@ -94,55 +100,95 @@ def smoke_test(esp: ESP8266) -> bool:
     return all(esp.send_cmd(c) for c in basic_commands)
 
 
-def wifi_test(esp: ESP8266) -> bool:
+def udp_test(esp: ESP8266) -> bool:
     """
     Test connecting to WIFI
     """
-    # Get some secrets from the environment
+    # Get some variables from the environment
     ssid = os.getenv("ESP_WIFI_SSID")
     passwd = os.getenv("ESP_WIFI_PASSWD")
-    assert ssid is not None, "Failed to get SSID from the environment!"
-    assert passwd is not None, "Failed to get WIFI password from the environment!"
+    server_ip = os.getenv("UDP_SERVER_IP")
+    server_port = os.getenv("UDP_SERVER_PORT")
+    for x in [ssid, passwd, server_ip, server_port]:
+        assert x is not None, f"Failed to get variable from the environment!"
+
+    # Make an list of alternating AT send command and message
+    test_msg = "Hello World"
+    test_again = test_msg + " again"
+    test_and_again = test_again + " and again"
+    test_and_again_ang_again = test_and_again + " and again"
+    test_msgs = [test_msg, test_again, test_and_again, test_and_again_ang_again]
+    alternating_cmd_msg = [
+        cmd
+        for cmd in itertools.chain.from_iterable(
+            zip(
+                [f"AT+CIPSEND={len(msg)}" for msg in test_msgs],
+                test_msgs,
+            )
+        )
+    ]
 
     # fmt: off
     wifi_commands = [
-        "AT+CWMODE=3",                        # Set wifi mode to both
-        "AT+CWMODE?",                         # Check current WIFI mode: client (1), access point (2) or both (3)
-        "AT+CWDHCP_CUR=2,0",                  # Disable DHCP in all modes
-        "AT+CWDHCP_CUR=1,1",                  # Enable DHCP in client mode
-        "AT+CWDHCP_CUR?",                     # Check that DHCP is enabled in client mode
-        "AT+CWMODE=1",                        # Set wifi mode to client
-        "AT+CWMODE?",                         # Check current WIFI mode
-        "AT+CWLAP",                           # List access points
-        "AT+CWJAP_CUR?",                      # Check if we are already connected to an acces point
-        f'AT+CWJAP_CUR="{ssid}","{passwd}"',  # Connect to WIFI
-        "AT+CWQAP",                           # Disconnect
+        "AT+CWMODE=3",                                         # Set wifi mode to both
+        "AT+CWMODE?",                                          # Check current WIFI mode: client (1), access point (2) or both (3)
+        "AT+CWDHCP_CUR=2,0",                                   # Disable DHCP in all modes
+        "AT+CWDHCP_CUR=1,1",                                   # Enable DHCP in client mode
+        "AT+CWDHCP_CUR?",                                      # Check that DHCP is enabled in client mode
+        "AT+CWMODE=1",                                         # Set wifi mode to client
+        "AT+CWMODE?",                                          # Check current WIFI mode
+        "AT+CWLAP",                                            # List access points
+        "AT+CWJAP_CUR?",                                       # Check if we are already connected to an acces point
+        f'AT+CWJAP_CUR="{ssid}","{passwd}"',                   # Connect to WIFI
+        "AT+CIPMUX=1",                                         # Multi TCP/UDP/SSL connection mode
+        "AT+CIPCLOSE=5",                                       # Close all connections
+        "AT+CIPMUX=0",                                         # Single connection mode
+        f"AT+CIPSTART=\"UDP\",\"{server_ip}\",{server_port}",  # Establish UDP connection
+    ] + alternating_cmd_msg                                    # Send the test messages
+    wifi_commands += [
+        "AT+CIPCLOSE",                                         # Close the UDP connection
+        "AT+CWQAP",                                            # Disconnect from access point
     ]
     # fmt: on
 
     return all(esp.send_cmd(c) for c in wifi_commands)
 
 
-def main() -> NoReturn:
+def tests() -> bool:
     serial_dev = "/dev/ttyUSB0"
-
+    esp = ESP8266(serial_dev)
     print(f"Testing ESP8266 connected to {serial_dev}...")
     print()
-
-    esp = ESP8266(serial_dev)
-
     tests: list[Callable[[], bool]] = [
         partial(restart, esp),
         partial(echo_mode, esp, True),
         partial(echo_mode, esp, False),
         partial(smoke_test, esp),
-        partial(wifi_test, esp),
+        partial(udp_test, esp),
     ]
-    if not all(t() for t in tests):
-        exit(1)
+    return all(t() for t in tests)
 
-    print("All tests OK!")
-    exit(0)
+
+def main() -> NoReturn:
+    # Run the UDP server and tests in parallel parallel separate processes
+    res: bool
+    with multiprocessing.Manager() as manager:
+        stop_server_event = manager.Event()
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            server_future = executor.submit(udp_server.server, stop_server_event)
+            # Wait for the server to start
+            while not server_future.running():
+                pass
+
+            # Run the tests
+            test_future = executor.submit(tests)
+            res = test_future.result()
+
+            # The tests have completed -> close the server
+            stop_server_event.set()
+            server_future.result()
+
+    exit(not res)
 
 
 if __name__ == "__main__":
