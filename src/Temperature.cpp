@@ -8,13 +8,13 @@
 #include "System.h"
 #include "Temperature.h"
 
-_system::ErrorCode BME280TemperatureSensor::init()
+sensor_node_system::ErrorCode BME280TemperatureSensor::init()
 {
     int8_t res = bme280_init(&bme280);
     if (res != BME280_OK) {
-        return _system::ErrorCode::TEMPERATURE_INIT_ERROR;
+        return sensor_node_system::ErrorCode::TEMPERATURE_INIT_ERROR;
     }
-    return _system::ErrorCode::OK;
+    return sensor_node_system::ErrorCode::OK;
 }
 
 std::optional<double> BME280TemperatureSensor::read() const

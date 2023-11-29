@@ -24,12 +24,10 @@ void SensorNode::main_loop()
         // Read & log temperature
         auto read_temperature = temperature.read();
         if (read_temperature) {
-            char buf[20];
-            snprintf(buf, 20, "Temperature: %.2lf\n", read_temperature.value());
-            logger.log(buf);
+            printf("Temperature: %.2lf\n", read_temperature.value());
         }
 
         // Wait a bit and do it again
-        _system::sleep_ms(1000);
+        sensor_node_system::sleep_ms(1000);
     }
 }

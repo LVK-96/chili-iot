@@ -24,10 +24,10 @@ public:
     void disable() override;
     void enable() override;
     void setup() const;
-    _system::ErrorCode read(uint8_t addr, std::span<uint8_t> data) const;
-    _system::ErrorCode write(uint8_t addr, std::span<const uint8_t> data) const;
-    _system::ErrorCode read(uint8_t addr, uint8_t& data) const;
-    _system::ErrorCode write(uint8_t addr, const uint8_t data) const;
+    sensor_node_system::ErrorCode read(uint8_t addr, std::span<uint8_t> data) const;
+    sensor_node_system::ErrorCode write(uint8_t addr, std::span<const uint8_t> data) const;
+    sensor_node_system::ErrorCode read(uint8_t addr, uint8_t& data) const;
+    sensor_node_system::ErrorCode write(uint8_t addr, const uint8_t data) const;
 
 private:
     const unsigned int i2c_dev;

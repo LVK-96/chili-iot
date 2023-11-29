@@ -8,7 +8,7 @@
 #include "Temperature.h"
 #include "USART.h"
 
-namespace _system {
+namespace sensor_node_system {
 
 namespace peripherals {
     GPIOPort gpio_a { BluePillGPIOPort::A, RCC_GPIOA, RST_GPIOA };

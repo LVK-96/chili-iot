@@ -34,7 +34,7 @@ public:
     {
     }
 
-    _system::ErrorCode init();
+    sensor_node_system::ErrorCode init();
     std::optional<double> read() const override;
     void write_reg(uint8_t addr, std::span<const uint8_t>) const;
     void read_reg(uint8_t addr, std::span<uint8_t>) const;
@@ -62,5 +62,5 @@ private:
         return BME280_INTF_RET_SUCCESS;
     }
 
-    static void bme280_delay_us(uint32_t period, [[maybe_unused]] void* intf_ptr) { _system::sleep_us(period); }
+    static void bme280_delay_us(uint32_t period, [[maybe_unused]] void* intf_ptr) { sensor_node_system::sleep_us(period); }
 };

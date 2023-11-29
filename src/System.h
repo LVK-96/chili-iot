@@ -17,7 +17,7 @@ class GPIOLED;
 class USARTLogger;
 class BME280TemperatureSensor;
 
-namespace _system {
+namespace sensor_node_system {
 
 enum class ErrorCode : uint8_t {
     OK = 0,
