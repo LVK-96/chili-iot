@@ -42,5 +42,7 @@ void USART::clken_reset_disable_setup_enable(unsigned int baudrate, unsigned int
 }
 
 void USART::send_blocking(char c) const { usart_send_blocking(usart, c); }
+uint16_t USART::recieve_blocking() const { return usart_recv_blocking(usart); }
+uint16_t USART::recieve() const { return usart_recv(usart); }
 
 bool USART::get_is_setup() const { return is_setup; }

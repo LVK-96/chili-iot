@@ -52,6 +52,8 @@ public:
     void clken_reset_disable_setup_enable(unsigned int baudrate, unsigned int databits, USARTStopBits stopbits,
         USARTMode mode, USARTParity parity, USARTFlowControl flowcontrol);
     void send_blocking(char c) const;
+    uint16_t recieve_blocking() const;
+    uint16_t recieve() const;
     bool get_is_setup() const;
 
 private:

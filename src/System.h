@@ -16,6 +16,7 @@ class I2C;
 class GPIOLED;
 class USARTLogger;
 class BME280TemperatureSensor;
+class Network;
 
 namespace sensor_node_system {
 
@@ -75,6 +76,7 @@ namespace modules {
     extern GPIOLED led;
     extern USARTLogger logger;
     extern BME280TemperatureSensor temperature;
+    extern Network network;
 };
 
 };

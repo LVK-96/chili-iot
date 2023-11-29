@@ -7,6 +7,7 @@
 #include "System.h"
 #include "Temperature.h"
 #include "USART.h"
+#include "Network.h"
 
 namespace sensor_node_system {
 
@@ -25,6 +26,7 @@ namespace modules {
     USARTLogger logger { Logger::LogLevel::INFO, peripherals::usart1 };
     BME280TemperatureSensor temperature { logger, peripherals::i2c1,
         BME280I2CBusAddr::SECONDARY }; // The Waveshare BME280 module defaults to the secondary I2C address (0x77)
+    Network network { logger, peripherals::usart2 };
 }
 
 void nop(unsigned int n)
@@ -41,6 +43,7 @@ void peripheral_setup()
     peripherals::gpio_a.clk_enable();
     peripherals::gpio_a.setup_pins(LOGGER_TX_PIN_NRO | NETWORK_TX_PIN_NRO | NETWORK_RX_PIN_NRO, GPIOMode::OUTPUT_50_MHZ,
         GPIOFunction::OUTPUT_ALTFN_PUSHPULL);
+    peripherals::gpio_a.clear_pins(LOGGER_TX_PIN_NRO | NETWORK_TX_PIN_NRO | NETWORK_RX_PIN_NRO);
 
     // GPIO B: I2C
     peripherals::gpio_b.clk_enable();
