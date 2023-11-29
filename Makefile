@@ -24,7 +24,7 @@ STFLASH          := $(shell which st-flash)
 # Compiler & linker flags
 FP_FLAGS     += -msoft-float
 ARCH_FLAGS   := -mthumb -mcpu=cortex-m3 -mfix-cortex-m3-ldrd $(FP_FLAGS)
-OPT_FLAGS    := -Os -fno-exceptions -flto -ffunction-sections -fdata-sections
+OPT_FLAGS    := -Os -fno-exceptions -ffunction-sections -fdata-sections
 WFLAGS       := -Wall -Wextra -Werror
 DEFINES      := -DSTM32F1
 
@@ -47,16 +47,14 @@ TGT_CFLAGS += $(ARCH_FLAGS)
 TGT_CFLAGS += $(DEFINES)
 
 # Linker flags
-TGT_LDFLAGS	 := --static -nostartfiles
+TGT_LDFLAGS	 += -static -nostartfiles
 TGT_LDFLAGS	 += -T$(LDSCRIPT)
 TGT_LDFLAGS	 += $(ARCH_FLAGS)
 TGT_LDFLAGS	 += -Wl,-Map=$(BUILD_DIR)/$(*).map
 TGT_LDFLAGS  += -Wl,--gc-sections
-TGT_LDFLAGS  += -L$(LIB_DIR)
-TGT_LDFLAGS  += -L$(OPENCM3_DIR)/lib
-
-LDLIBS       += --specs=nosys.specs
+LDLIBS       += -L$(LIB_DIR) -L$(OPENCM3_DIR)/lib
 LDLIBS       += -lopencm3_stm32f1 -lbme280
+LDLIBS       += -specs=nosys.specs
 
 # Pass C flags to libopencm3 makefiles
 CFLAGS += $(TGT_CFLAGS)
@@ -133,6 +131,7 @@ style-fix:
 # Clean
 clean:
 	rm -rf $(BUILD_DIR)
+	rm -rf $(LIB_DIR)
 
 clean_lib:
 	rm -rf $(LIB_DIR)
