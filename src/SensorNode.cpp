@@ -24,11 +24,11 @@ void SensorNode::main_loop()
         led.toggle();
 
         // Read & log temperature
-        auto read_temperature = temperature.read();
-        if (read_temperature) {
-            printf("Temperature: %.2lf\n", read_temperature.value());
-        }
-        printf("AT OK: %x\n", network.test_connection());
+        // auto read_temperature = temperature.read();
+        // if (read_temperature) {
+        //     printf("Temperature: %.2lf\n", read_temperature.value());
+        // }
+        network.test_connection();
 
         // Wait a bit and do it again
         sensor_node_system::sleep_ms(1000);

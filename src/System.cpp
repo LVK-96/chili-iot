@@ -1,12 +1,16 @@
 #include <algorithm>
+#include <array>
+
+#include <libopencm3/cm3/nvic.h>
 
 #include "BlinkyLED.h"
 #include "GPIO.h"
 #include "I2C.h"
+#include "USART.h"
+#include "DMA.h"
 #include "Logger.h"
 #include "System.h"
 #include "Temperature.h"
-#include "USART.h"
 #include "Network.h"
 
 namespace sensor_node_system {
@@ -19,6 +23,7 @@ namespace peripherals {
     USART usart1 { BluePillUSART::_1, RCC_USART1, RST_USART1 };
     USART usart2 { BluePillUSART::_2, RCC_USART2, RST_USART2 };
     I2C i2c1 { BluePillI2C::_1, RCC_I2C1, RST_I2C1 };
+    DMA dma1 { BluePillDMAController::_1, RCC_DMA1 }; // DMA peripherals don't have reset bits in clock RCC CSRs
 }
 
 namespace modules {
@@ -64,6 +69,10 @@ static void peripheral_setup()
     }
     peripherals::usart2.rx_dma(true);
 
+    // DMA
+    peripherals::dma1.disable();
+    peripherals::dma1.enable();
+
     // I2C
     peripherals::gpio_b.set_pins(I2C1_SCL_PIN_NRO | I2C1_SDA_PIN_NRO); // I2C Idle high
     peripherals::i2c1.reset_pulse();
@@ -79,6 +88,7 @@ static void clock_setup()
     peripherals::gpio_a.clk_enable();
     peripherals::gpio_b.clk_enable();
     peripherals::gpio_c.clk_enable();
+    peripherals::dma1.clk_enable();
     peripherals::usart1.clk_enable();
     peripherals::usart2.clk_enable();
     peripherals::i2c1.clk_enable();

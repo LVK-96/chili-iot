@@ -13,6 +13,7 @@ class GPIOPort;
 class GPIOPin;
 class USART;
 class I2C;
+class DMA;
 class GPIOLED;
 class USARTLogger;
 class BME280TemperatureSensor;
@@ -70,6 +71,7 @@ namespace peripherals {
     extern USART usart1;
     extern USART usart2;
     extern I2C i2c1;
+    extern DMA dma1;
 };
 
 namespace modules {
