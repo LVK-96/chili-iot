@@ -123,10 +123,10 @@ $(LIB_DIR)/bme280.o: $(BME280_DIR)/bme280.c
 
 # Style checks
 style-check:
-	clang-format --Werror --dry-run src/** newlib_syscalls/**
+	clang-format --Werror --dry-run src/**
 
 style-fix:
-	clang-format --Werror -i src/** newlib_syscalls/**
+	clang-format --Werror -i src/**
 
 # Clean
 clean:
