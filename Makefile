@@ -100,7 +100,7 @@ libopencm3: submodules/libopencm3/lib/libopencm3_stm32f1.a
 # sensor node
 elf: $(BUILD_DIR)/$(BINARY).elf
 
-bin: $(BUILD_DIR) $(LIB_DIR) $(BUILD_DIR)/$(BINARY).bin
+bin: $(BUILD_DIR) $(LIB_DIR) libopencm3 $(BUILD_DIR)/$(BINARY).bin
 
 $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf
 	$(OBJCOPY) -Obinary $< $@
