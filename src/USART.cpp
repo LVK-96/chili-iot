@@ -15,9 +15,9 @@ void USART::set_flow_control(USARTFlowControl flowcontrol)
     usart_set_flow_control(usart, static_cast<uint32_t>(flowcontrol));
 }
 
-void USART::enable() { usart_enable(usart); }
+void USART::enable() const { usart_enable(usart); }
 
-void USART::disable() { usart_disable(usart); }
+void USART::disable() const { usart_disable(usart); }
 
 void USART::setup(unsigned int baudrate, unsigned int databits, USARTStopBits stopbits, USARTMode mode,
     USARTParity parity, USARTFlowControl flowcontrol)
@@ -31,18 +31,44 @@ void USART::setup(unsigned int baudrate, unsigned int databits, USARTStopBits st
     is_setup = true;
 }
 
-void USART::clken_reset_disable_setup_enable(unsigned int baudrate, unsigned int databits, USARTStopBits stopbits,
-    USARTMode mode, USARTParity parity, USARTFlowControl flowcontrol)
-{
-    clk_enable();
-    reset_pulse();
-    disable();
-    setup(baudrate, databits, stopbits, mode, parity, flowcontrol);
-    enable();
-}
-
 void USART::send_blocking(char c) const { usart_send_blocking(usart, c); }
+void USART::send_blocking(std::string_view str) const
+{
+    for (auto &ch : str)
+    {
+        send_blocking(ch);
+    }
+}
 uint16_t USART::recieve_blocking() const { return usart_recv_blocking(usart); }
 uint16_t USART::recieve() const { return usart_recv(usart); }
 
+void USART::rx_dma(bool set) const
+{
+    if (set) usart_enable_rx_dma(usart);
+    else usart_disable_rx_dma(usart);
+}
+
+void USART::tx_dma(bool set) const
+{
+    if (set) usart_enable_tx_dma(usart);
+    else usart_disable_tx_dma(usart);
+}
+
+void USART::rx_interrupt(bool set) const
+{
+    if (set) usart_enable_rx_interrupt(usart);
+    else usart_disable_rx_interrupt(usart);
+}
+
+void USART::tx_interrupt(bool set) const
+{
+    if (set) usart_enable_tx_interrupt(usart);
+    else usart_disable_tx_interrupt(usart);
+}
+
 bool USART::get_is_setup() const { return is_setup; }
+
+uint32_t USART::get_usart_csr_base_addr()
+{
+    return usart;
+}

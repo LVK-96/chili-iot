@@ -1,7 +1,6 @@
 #include "SensorNode.h"
 #include "System.h"
 
-
 int main()
 {
     auto setup_res = sensor_node_system::setup();

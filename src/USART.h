@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string_view>
 
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/usart.h>
@@ -47,14 +48,18 @@ public:
     void set_flow_control(USARTFlowControl);
     void setup(unsigned int baudrate, unsigned int databits, USARTStopBits stopbits, USARTMode mode, USARTParity parity,
         USARTFlowControl flowcontrol);
-    void disable() override;
-    void enable() override;
-    void clken_reset_disable_setup_enable(unsigned int baudrate, unsigned int databits, USARTStopBits stopbits,
-        USARTMode mode, USARTParity parity, USARTFlowControl flowcontrol);
+    void disable() const override;
+    void enable() const override;
     void send_blocking(char c) const;
+    void send_blocking(std::string_view str) const;
     uint16_t recieve_blocking() const;
     uint16_t recieve() const;
+    void rx_dma(bool set) const;
+    void tx_dma(bool set) const;
+    void rx_interrupt(bool set) const;
+    void tx_interrupt(bool set) const;
     bool get_is_setup() const;
+    uint32_t get_usart_csr_base_addr();
 
 private:
     bool is_setup = false;

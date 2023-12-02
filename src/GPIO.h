@@ -36,8 +36,8 @@ public:
     }
 
     // You cannot enable/disable GPIO ports
-    void enable() override { }
-    void disable() override { }
+    void enable() const override { }
+    void disable() const override { }
 
     // Pin access
     void set_pins(uint16_t pins) const;

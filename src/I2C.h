@@ -21,8 +21,8 @@ public:
         , i2c_dev(static_cast<unsigned int>(i2c_dev))
     {
     }
-    void disable() override;
-    void enable() override;
+    void disable() const override;
+    void enable() const override;
     void setup() const;
     sensor_node_system::ErrorCode read(uint8_t addr, std::span<uint8_t> data) const;
     sensor_node_system::ErrorCode write(uint8_t addr, std::span<const uint8_t> data) const;
