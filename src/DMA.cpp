@@ -20,12 +20,11 @@ void DMA::setup_channel_from_peripheral_to_memory(BluePillDMAChannel channel, ui
     } else {
         dma_disable_peripheral_increment_mode(dma, channel_uint32);
     }
-    if(increment_mem) {
+    if (increment_mem) {
         dma_enable_memory_increment_mode(dma, channel_uint32);
     } else {
         dma_disable_memory_increment_mode(dma, channel_uint32);
     }
-
 
     // BluePillDMAPeripheralWordSize underlying values are magic numbers that need to be written into CSRs
     // Get the actual word size in bytes
@@ -42,7 +41,7 @@ void DMA::setup_channel_from_peripheral_to_memory(BluePillDMAChannel channel, ui
     dma_set_memory_address(dma, channel_uint32, reinterpret_cast<uint32_t>(dest_buf.data()));
 
     // Interrupts
-    if (transfer_error_interrupt){
+    if (transfer_error_interrupt) {
         dma_enable_transfer_error_interrupt(dma, channel_uint32);
     } else {
         dma_disable_transfer_error_interrupt(dma, channel_uint32);
@@ -58,21 +57,15 @@ void DMA::setup_channel_from_peripheral_to_memory(BluePillDMAChannel channel, ui
         dma_disable_transfer_complete_interrupt(dma, channel_uint32);
     }
 }
-void DMA::enable() const {}
+void DMA::enable() const { }
 
 void DMA::disable() const
 {
-    for (auto &channel : all_channels) {
+    for (auto& channel : all_channels) {
         dma_disable_channel(dma, channel);
     }
 }
 
-void DMA::enable(BluePillDMAChannel channel) const
-{
-    dma_enable_channel(dma, static_cast<uint8_t>(channel));
-}
+void DMA::enable(BluePillDMAChannel channel) const { dma_enable_channel(dma, static_cast<uint8_t>(channel)); }
 
-void DMA::disable(BluePillDMAChannel channel) const
-{
-    dma_disable_channel(dma, static_cast<uint8_t>(channel));
-}
+void DMA::disable(BluePillDMAChannel channel) const { dma_disable_channel(dma, static_cast<uint8_t>(channel)); }

@@ -2,11 +2,10 @@
 
 #include <libopencm3/stm32/rcc.h>
 
-class BasePeripheral
-{
-    public:
-        virtual void enable() const = 0;
-        virtual void disable() const = 0;
+class BasePeripheral {
+public:
+    virtual void enable() const = 0;
+    virtual void disable() const = 0;
 };
 
 class NoResetPeripheral : public BasePeripheral {

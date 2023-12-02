@@ -4,12 +4,13 @@
 
 #include "BlinkyLED.h"
 #include "Logger.h"
+#include "Network.h"
 #include "SensorNode.h"
 #include "System.h"
 #include "Temperature.h"
-#include "Network.h"
 
-SensorNode::SensorNode(const BlinkyLED& led, const Logger& logger, const TemperatureSensor& temperature, const Network &network)
+SensorNode::SensorNode(
+    const BlinkyLED& led, const Logger& logger, const TemperatureSensor& temperature, const Network& network)
     : led(led)
     , logger(logger)
     , temperature(temperature)
@@ -24,10 +25,12 @@ void SensorNode::main_loop()
         led.toggle();
 
         // Read & log temperature
-        // auto read_temperature = temperature.read();
-        // if (read_temperature) {
-        //     printf("Temperature: %.2lf\n", read_temperature.value());
-        // }
+        auto read_temperature = temperature.read();
+        if (read_temperature) {
+            printf("Temperature: %.2lf\n", read_temperature.value());
+        }
+
+        sensor_node_system::sleep_ms(1000);
         network.test_connection();
 
         // Wait a bit and do it again

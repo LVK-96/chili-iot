@@ -34,8 +34,7 @@ void USART::setup(unsigned int baudrate, unsigned int databits, USARTStopBits st
 void USART::send_blocking(char c) const { usart_send_blocking(usart, c); }
 void USART::send_blocking(std::string_view str) const
 {
-    for (auto &ch : str)
-    {
+    for (auto& ch : str) {
         send_blocking(ch);
     }
 }
@@ -44,31 +43,36 @@ uint16_t USART::recieve() const { return usart_recv(usart); }
 
 void USART::rx_dma(bool set) const
 {
-    if (set) usart_enable_rx_dma(usart);
-    else usart_disable_rx_dma(usart);
+    if (set)
+        usart_enable_rx_dma(usart);
+    else
+        usart_disable_rx_dma(usart);
 }
 
 void USART::tx_dma(bool set) const
 {
-    if (set) usart_enable_tx_dma(usart);
-    else usart_disable_tx_dma(usart);
+    if (set)
+        usart_enable_tx_dma(usart);
+    else
+        usart_disable_tx_dma(usart);
 }
 
 void USART::rx_interrupt(bool set) const
 {
-    if (set) usart_enable_rx_interrupt(usart);
-    else usart_disable_rx_interrupt(usart);
+    if (set)
+        usart_enable_rx_interrupt(usart);
+    else
+        usart_disable_rx_interrupt(usart);
 }
 
 void USART::tx_interrupt(bool set) const
 {
-    if (set) usart_enable_tx_interrupt(usart);
-    else usart_disable_tx_interrupt(usart);
+    if (set)
+        usart_enable_tx_interrupt(usart);
+    else
+        usart_disable_tx_interrupt(usart);
 }
 
 bool USART::get_is_setup() const { return is_setup; }
 
-uint32_t USART::get_usart_csr_base_addr()
-{
-    return usart;
-}
+uint32_t USART::get_usart_csr_base_addr() { return usart; }

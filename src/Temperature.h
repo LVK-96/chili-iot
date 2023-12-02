@@ -62,5 +62,8 @@ private:
         return BME280_INTF_RET_SUCCESS;
     }
 
-    static void bme280_delay_us(uint32_t period, [[maybe_unused]] void* intf_ptr) { sensor_node_system::sleep_us(period); }
+    static void bme280_delay_us(uint32_t period, [[maybe_unused]] void* intf_ptr)
+    {
+        sensor_node_system::sleep_us(period);
+    }
 };

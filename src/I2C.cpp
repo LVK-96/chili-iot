@@ -31,4 +31,7 @@ sensor_node_system::ErrorCode I2C::write(uint8_t addr, uint8_t data) const
     return write(addr, std::span<const uint8_t, 1>(&data, 1));
 }
 
-sensor_node_system::ErrorCode I2C::read(uint8_t addr, uint8_t& data) const { return read(addr, std::span<uint8_t, 1>(&data, 1)); }
+sensor_node_system::ErrorCode I2C::read(uint8_t addr, uint8_t& data) const
+{
+    return read(addr, std::span<uint8_t, 1>(&data, 1));
+}

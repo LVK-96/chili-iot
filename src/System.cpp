@@ -4,14 +4,14 @@
 #include <libopencm3/cm3/nvic.h>
 
 #include "BlinkyLED.h"
+#include "DMA.h"
 #include "GPIO.h"
 #include "I2C.h"
-#include "USART.h"
-#include "DMA.h"
 #include "Logger.h"
+#include "Network.h"
 #include "System.h"
 #include "Temperature.h"
-#include "Network.h"
+#include "USART.h"
 
 namespace sensor_node_system {
 
@@ -45,27 +45,27 @@ void nop(unsigned int n)
 static void peripheral_setup()
 {
     // GPIO
-    for (auto &gpio : {peripherals::gpio_a, peripherals::gpio_b, peripherals::gpio_c}) {
-            gpio.reset_pulse();
+    for (auto& gpio : { peripherals::gpio_a, peripherals::gpio_b, peripherals::gpio_c }) {
+        gpio.reset_pulse();
     }
     peripherals::gpio_a.setup_pins(LOGGER_TX_PIN_NRO | NETWORK_TX_PIN_NRO, GPIOMode::OUTPUT_50_MHZ,
         GPIOFunction::OUTPUT_ALTFN_PUSHPULL); // A9 USART1 & A2 USART2 TX
     peripherals::gpio_a.setup_pins(NETWORK_RX_PIN_NRO, GPIOMode::INPUT, GPIOFunction::INPUT_FLOAT); // A3 USART2 RX
-    peripherals::gpio_b.setup_pins(
-        I2C1_SCL_PIN_NRO | I2C1_SDA_PIN_NRO, GPIOMode::OUTPUT_50_MHZ, GPIOFunction::OUTPUT_ALTFN_OPENDRAIN); // B6 SCL, B7 SDA
+    peripherals::gpio_b.setup_pins(I2C1_SCL_PIN_NRO | I2C1_SDA_PIN_NRO, GPIOMode::OUTPUT_50_MHZ,
+        GPIOFunction::OUTPUT_ALTFN_OPENDRAIN); // B6 SCL, B7 SDA
     peripherals::gpio_c.setup_pins(LED_PIN_NRO, GPIOMode::OUTPUT_2_MHZ, GPIOFunction::OUTPUT_PUSHPULL); // C13 LED
 
     // USART
-    for (auto &usart : {peripherals::usart1, peripherals::usart2}) {
+    for (auto& usart : { peripherals::usart1, peripherals::usart2 }) {
         usart.reset_pulse();
         usart.disable();
     }
     peripherals::usart1.setup(
         LOGGER_BAUDRATE, LOGGER_DATABITS, USARTStopBits::_1, USARTMode::TX, USARTParity::NONE, USARTFlowControl::NONE);
-    peripherals::usart2.setup(NETWORK_BAUDRATE, NETWORK_DATABITS, USARTStopBits::_1,
-        USARTMode::TX_RX, USARTParity::NONE, USARTFlowControl::NONE);
-    for (auto &usart : {peripherals::usart1, peripherals::usart2}) {
-            usart.enable();
+    peripherals::usart2.setup(NETWORK_BAUDRATE, NETWORK_DATABITS, USARTStopBits::_1, USARTMode::TX_RX,
+        USARTParity::NONE, USARTFlowControl::NONE);
+    for (auto& usart : { peripherals::usart1, peripherals::usart2 }) {
+        usart.enable();
     }
     peripherals::usart2.rx_dma(true);
 
@@ -102,7 +102,7 @@ static void systick_setup()
 
 static void interrupt_setup()
 {
-	nvic_enable_irq(NVIC_DMA1_CHANNEL6_IRQ); // DMA1 Channel 6, USART2 RX uses this channel
+    nvic_enable_irq(NVIC_DMA1_CHANNEL6_IRQ); // DMA1 Channel 6, USART2 RX uses this channel
 }
 
 static ErrorCode module_setup() { return modules::temperature.init(); }

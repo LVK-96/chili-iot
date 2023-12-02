@@ -2,8 +2,8 @@
 
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/systick.h>
-#include <libopencm3/stm32/usart.h>
 #include <libopencm3/stm32/dma.h>
+#include <libopencm3/stm32/usart.h>
 
 // USART2 Rx DMA1 channel 6.
 void dma1_channel6_isr(void)
