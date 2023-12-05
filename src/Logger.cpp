@@ -10,7 +10,7 @@
 #include "System.h"
 #include "USART.h"
 
-void Logger::set_verbosity(LogLevel verbosity) { verbosity = verbosity; }
+void Logger::set_verbosity(LogLevel new_verbosity) { verbosity = new_verbosity; }
 
 Logger::LogLevel Logger::get_verbosity() const { return verbosity; }
 
