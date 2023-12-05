@@ -4,6 +4,7 @@
 
 #include "BlinkyLED.h"
 #include "Logger.h"
+#include "Network.h"
 #include "System.h"
 #include "Temperature.h"
 

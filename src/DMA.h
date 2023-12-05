@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cstdint>
 #include <span>
 
@@ -45,14 +47,18 @@ public:
     }
     void setup_channel_from_peripheral_to_memory(BluePillDMAChannel channel, uint32_t peripheral_addr,
         BluePillDMAPeripheralWordSize peripheral_word_size, BluePillDMAMemWordSize memory_word_size,
-        BluePillDMAPriority priority, std::span<uint8_t> dest_buf, bool increment_peripheral, bool increment_mem,
-        bool transfer_error_interrupt, bool half_transfer_interrupt, bool transfer_complete_interrupt) const;
+        BluePillDMAPriority priority, uint32_t dest_addr, unsigned int number_of_data, bool increment_peripheral,
+        bool increment_mem, bool transfer_error_interrupt, bool half_transfer_interrupt,
+        bool transfer_complete_interrupt) const;
 
     void enable() const override;
     void disable() const override;
     void enable(BluePillDMAChannel channel) const;
     void disable(BluePillDMAChannel channel) const;
-    void reset() const {}; // DMA peripheral cannot be reset
+    void reset() const; // DMA peripheral does not have a reset bit in RCC registers, but we can reset the DMA channels
+    void reset(BluePillDMAChannel channel) const;
+    unsigned int get_count(BluePillDMAChannel channel) const;
+
 private:
     static constexpr std::array<const uint8_t, 7> all_channels = { static_cast<uint8_t>(BluePillDMAChannel::_1),
         static_cast<uint8_t>(BluePillDMAChannel::_2), static_cast<uint8_t>(BluePillDMAChannel::_3),

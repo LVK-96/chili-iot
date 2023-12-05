@@ -1,11 +1,13 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <string_view>
 
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/usart.h>
 
+#include "DMA.h"
 #include "Peripheral.h"
 
 enum class BluePillUSART : uint32_t { _1 = USART1, _2 = USART2, _3 = USART3 };
@@ -54,14 +56,42 @@ public:
     void send_blocking(std::string_view str) const;
     uint16_t recieve_blocking() const;
     uint16_t recieve() const;
-    void rx_dma(bool set) const;
-    void tx_dma(bool set) const;
-    void rx_interrupt(bool set) const;
-    void tx_interrupt(bool set) const;
+    void rx_interrupt(bool set);
+    void tx_interrupt(bool set);
+    void error_interrupt(bool set);
     bool get_is_setup() const;
     uint32_t get_usart_csr_base_addr();
 
+protected:
+    const uint32_t usart;
+
 private:
     bool is_setup = false;
-    const uint32_t usart;
+};
+
+struct USARTDMA {
+    const DMA& dma;
+    const BluePillDMAChannel rx_channel;
+    const BluePillDMAChannel tx_channel;
+};
+
+class USARTWithDMA : public USART {
+public:
+    constexpr USARTWithDMA(
+        BluePillUSART usart, rcc_periph_clken clken, rcc_periph_rst rst, const USARTDMA& dma) noexcept
+        : USART(usart, clken, rst)
+        , dma(dma)
+    {
+    }
+
+    void enable_rx_dma(uint32_t dest_addr, unsigned int number_of_data) const;
+    void enable_tx_dma() const;
+    void disable_rx_dma() const;
+    void disable_tx_dma() const;
+    void reset_rx_dma() const;
+    void reset_tx_dma() const;
+    unsigned int get_dma_count() const;
+
+private:
+    const USARTDMA dma;
 };

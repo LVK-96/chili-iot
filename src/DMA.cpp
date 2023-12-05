@@ -1,9 +1,12 @@
+#include <cstdio>
+
 #include "DMA.h"
 
 void DMA::setup_channel_from_peripheral_to_memory(BluePillDMAChannel channel, uint32_t peripheral_addr,
     BluePillDMAPeripheralWordSize peripheral_word_size, BluePillDMAMemWordSize memory_word_size,
-    BluePillDMAPriority priority, std::span<uint8_t> dest_buf, bool increment_peripheral, bool increment_mem,
-    bool transfer_error_interrupt, bool half_transfer_interrupt, bool transfer_complete_interrupt) const
+    BluePillDMAPriority priority, uint32_t dest_addr, unsigned int number_of_data, bool increment_peripheral,
+    bool increment_mem, bool transfer_error_interrupt, bool half_transfer_interrupt,
+    bool transfer_complete_interrupt) const
 {
     uint32_t channel_uint32 = static_cast<uint32_t>(channel);
 
@@ -26,19 +29,10 @@ void DMA::setup_channel_from_peripheral_to_memory(BluePillDMAChannel channel, ui
         dma_disable_memory_increment_mode(dma, channel_uint32);
     }
 
-    // BluePillDMAPeripheralWordSize underlying values are magic numbers that need to be written into CSRs
-    // Get the actual word size in bytes
-    unsigned int peripheral_word_size_bytes = 1; // BYTE
-    if (peripheral_word_size == BluePillDMAPeripheralWordSize::HALFWORD) {
-        peripheral_word_size_bytes = 2;
-    } else if (peripheral_word_size == BluePillDMAPeripheralWordSize::WORD) {
-        peripheral_word_size_bytes = 4;
-    }
     // Setup transfer source, destination and size
     dma_set_peripheral_address(dma, channel_uint32, peripheral_addr);
-    unsigned int number_of_words_to_transfer = dest_buf.size_bytes() / peripheral_word_size_bytes;
-    dma_set_number_of_data(dma, channel_uint32, number_of_words_to_transfer);
-    dma_set_memory_address(dma, channel_uint32, reinterpret_cast<uint32_t>(dest_buf.data()));
+    dma_set_number_of_data(dma, channel_uint32, number_of_data);
+    dma_set_memory_address(dma, channel_uint32, dest_addr);
 
     // Interrupts
     if (transfer_error_interrupt) {
@@ -69,3 +63,14 @@ void DMA::disable() const
 void DMA::enable(BluePillDMAChannel channel) const { dma_enable_channel(dma, static_cast<uint8_t>(channel)); }
 
 void DMA::disable(BluePillDMAChannel channel) const { dma_disable_channel(dma, static_cast<uint8_t>(channel)); }
+
+void DMA::reset() const
+{
+    for (auto& channel : all_channels) {
+        dma_channel_reset(dma, channel);
+    }
+}
+
+void DMA::reset(BluePillDMAChannel channel) const { dma_channel_reset(dma, static_cast<uint8_t>(channel)); }
+
+unsigned int DMA::get_count(BluePillDMAChannel channel) const { return DMA_CNDTR(dma, static_cast<uint8_t>(channel)); }

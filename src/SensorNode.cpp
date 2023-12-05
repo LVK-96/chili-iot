@@ -20,6 +20,8 @@ SensorNode::SensorNode(
 
 void SensorNode::main_loop()
 {
+    network.reset(); // Reset the network device
+    network.connect_to_ap(); // Connect to the network
     while (true) {
         // Blink the led
         led.toggle();
@@ -29,9 +31,6 @@ void SensorNode::main_loop()
         if (read_temperature) {
             printf("Temperature: %.2lf\n", read_temperature.value());
         }
-
-        sensor_node_system::sleep_ms(1000);
-        network.test_connection();
 
         // Wait a bit and do it again
         sensor_node_system::sleep_ms(1000);

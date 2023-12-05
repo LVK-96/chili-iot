@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <array>
+#include <functional>
 
 #include <libopencm3/cm3/nvic.h>
 
@@ -20,10 +21,11 @@ namespace peripherals {
     GPIOPort gpio_b { BluePillGPIOPort::B, RCC_GPIOB, RST_GPIOB };
     GPIOPort gpio_c { BluePillGPIOPort::C, RCC_GPIOC, RST_GPIOC };
     GPIOPin led_pin { LED_PIN_NRO, gpio_c };
+    DMA dma1 { BluePillDMAController::_1, RCC_DMA1 }; // DMA peripherals don't have reset bits in RCC CSRs
     USART usart1 { BluePillUSART::_1, RCC_USART1, RST_USART1 };
-    USART usart2 { BluePillUSART::_2, RCC_USART2, RST_USART2 };
+    USARTWithDMA usart2 { BluePillUSART::_2, RCC_USART2, RST_USART2,
+        { .dma = dma1, .rx_channel = BluePillDMAChannel::_6, .tx_channel = BluePillDMAChannel::_7 } };
     I2C i2c1 { BluePillI2C::_1, RCC_I2C1, RST_I2C1 };
-    DMA dma1 { BluePillDMAController::_1, RCC_DMA1 }; // DMA peripherals don't have reset bits in clock RCC CSRs
 }
 
 namespace modules {
@@ -31,7 +33,7 @@ namespace modules {
     USARTLogger logger { Logger::LogLevel::INFO, peripherals::usart1 };
     BME280TemperatureSensor temperature { logger, peripherals::i2c1,
         BME280I2CBusAddr::SECONDARY }; // The Waveshare BME280 module defaults to the secondary I2C address (0x77)
-    Network network { logger, peripherals::usart2 };
+    ESP8266Network network { logger, peripherals::usart2 };
 }
 
 void nop(unsigned int n)
@@ -56,18 +58,17 @@ static void peripheral_setup()
     peripherals::gpio_c.setup_pins(LED_PIN_NRO, GPIOMode::OUTPUT_2_MHZ, GPIOFunction::OUTPUT_PUSHPULL); // C13 LED
 
     // USART
-    for (auto& usart : { peripherals::usart1, peripherals::usart2 }) {
+    auto usart_setup_helper = [](USART& usart, unsigned int baudrate, unsigned int databits, USARTStopBits stopbits,
+                                  USARTMode mode, USARTParity parity, USARTFlowControl flowcontrol) {
         usart.reset_pulse();
         usart.disable();
-    }
-    peripherals::usart1.setup(
-        LOGGER_BAUDRATE, LOGGER_DATABITS, USARTStopBits::_1, USARTMode::TX, USARTParity::NONE, USARTFlowControl::NONE);
-    peripherals::usart2.setup(NETWORK_BAUDRATE, NETWORK_DATABITS, USARTStopBits::_1, USARTMode::TX_RX,
-        USARTParity::NONE, USARTFlowControl::NONE);
-    for (auto& usart : { peripherals::usart1, peripherals::usart2 }) {
+        usart.setup(baudrate, databits, stopbits, mode, parity, flowcontrol);
         usart.enable();
-    }
-    peripherals::usart2.rx_dma(true);
+    };
+    usart_setup_helper(peripherals::usart1, LOGGER_BAUDRATE, LOGGER_DATABITS, USARTStopBits::_1, USARTMode::TX,
+        USARTParity::NONE, USARTFlowControl::NONE);
+    usart_setup_helper(peripherals::usart2, NETWORK_BAUDRATE, NETWORK_DATABITS, USARTStopBits::_1, USARTMode::TX_RX,
+        USARTParity::NONE, USARTFlowControl::NONE);
 
     // DMA
     peripherals::dma1.disable();
@@ -103,6 +104,7 @@ static void systick_setup()
 static void interrupt_setup()
 {
     nvic_enable_irq(NVIC_DMA1_CHANNEL6_IRQ); // DMA1 Channel 6, USART2 RX uses this channel
+    nvic_enable_irq(NVIC_USART2_IRQ); // USART2 interrupts
 }
 
 static ErrorCode module_setup() { return modules::temperature.init(); }
@@ -111,8 +113,8 @@ ErrorCode setup()
 {
     clock_setup();
     systick_setup();
-    interrupt_setup();
     peripheral_setup();
+    interrupt_setup();
     return module_setup();
 }
 

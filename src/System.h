@@ -12,12 +12,13 @@
 class GPIOPort;
 class GPIOPin;
 class USART;
+class USARTWithDMA;
 class I2C;
 class DMA;
 class GPIOLED;
 class USARTLogger;
 class BME280TemperatureSensor;
-class Network;
+class ESP8266Network;
 
 namespace sensor_node_system {
 
@@ -69,7 +70,7 @@ namespace peripherals {
     extern GPIOPort gpio_c;
     extern GPIOPin led_pin;
     extern USART usart1;
-    extern USART usart2;
+    extern USARTWithDMA usart2;
     extern I2C i2c1;
     extern DMA dma1;
 };
@@ -78,7 +79,7 @@ namespace modules {
     extern GPIOLED led;
     extern USARTLogger logger;
     extern BME280TemperatureSensor temperature;
-    extern Network network;
+    extern ESP8266Network network;
 };
 
 };
