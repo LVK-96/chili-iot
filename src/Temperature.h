@@ -12,7 +12,7 @@
 
 class TemperatureSensor {
 public:
-    virtual std::optional<double> read() const = 0;
+    [[nodiscard]] virtual std::optional<double> read() const = 0;
 };
 
 enum class BME280I2CBusAddr : uint8_t { PRIMARY = BME280_I2C_ADDR_PRIM, SECONDARY = BME280_I2C_ADDR_SEC };
@@ -36,8 +36,8 @@ public:
 
     sensor_node_system::ErrorCode init();
     std::optional<double> read() const override;
-    void write_reg(uint8_t addr, std::span<const uint8_t>) const;
-    void read_reg(uint8_t addr, std::span<uint8_t>) const;
+    void write_reg(uint8_t addr, std::span<const uint8_t> data) const;
+    void read_reg(uint8_t addr, std::span<uint8_t> data) const;
 
 private:
     const Logger& logger;

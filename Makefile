@@ -22,22 +22,23 @@ GDB	             := $(TOOLCHAIN_PREFIX)-gdb
 STFLASH          := $(shell which st-flash)
 
 # Compiler & linker flags
-FP_FLAGS     += -msoft-float
-ARCH_FLAGS   := -mthumb -mcpu=cortex-m3 -mfix-cortex-m3-ldrd $(FP_FLAGS)
-OPT_FLAGS    := -Os -fno-exceptions -ffunction-sections -fdata-sections
-WFLAGS       := -Wall -Wextra -Werror
-DEFINES      := -DSTM32F1
+STDLIB_INCLUDE   := $(shell $(CXX) -xc++ /dev/null -E -Wp,-v 2>&1 | sed -n 's,^ ,,p' | xargs -I{} echo -I{})
+FP_FLAGS         := -msoft-float
+ARCH_FLAGS       := -mthumb -mcpu=cortex-m3 -mfix-cortex-m3-ldrd $(FP_FLAGS)
+OPT_FLAGS        := -Os -fno-exceptions -ffunction-sections -fdata-sections
+WFLAGS           := -Wall -Wextra -Werror
+DEFINES          := -DSTM32F1
+I_FLAGS          := -I$(OPENCM3_DIR)/include -I$(BME280_DIR) -Isrc $(STDLIB_INCLUDE)
 
 # C++ compiler flags
 TGT_CXXFLAGS += $(OPT_FLAGS)
+TGT_CXXFLAGS += -fanalyzer
 TGT_CXXFLAGS += -fno-use-cxa-atexit -fno-rtti
 TGT_CXXFLAGS += $(WFLAGS)
 TGT_CXXFLAGS += $(ARCH_FLAGS)
 TGT_CXXFLAGS += $(DEFINES)
 TGT_CXXFLAGS += -std=c++20
-TGT_CXXFLAGS += -I$(OPENCM3_DIR)/include
-TGT_CXXFLAGS += -I$(BME280_DIR)
-TGT_CXXFLAGS += -Isrc
+TGT_CXXFLAGS += $(I_FLAGS)
 TGT_CXXFLAGS += -MD
 TGT_CXXFLAGS += -D WIFI_AP=$(WIFI_AP) -D WIFI_PASS=$(WIFI_PASS) -D SERVER_IP=$(SERVER_IP) -D SERVER_PORT=$(SERVER_PORT)
 
@@ -66,11 +67,11 @@ export CFLAGS
 SRC_FILES := $(shell find $(SRC_DIR) -name '*.cpp')
 OBJS      := $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(SRC_FILES))
 DEPENDS   := $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.d, $(SRC_FILES))
-BME280_SRC_FILES := $(shell find $(BME280_DIR) -maxdepth 1 -name '*.c')
-BME280_OBJS      := $(patsubst $(BME280_DIR)/%.c, $(LIB_DIR)/%.o, $(BME280_SRC_FILES))
-BME280_DEPENDS   := $(patsubst $(BME280_DIR)/%.c, $(LIB_DIR)/%.d, $(BME280_SRC_FILES))
 
 # Makefile debug
+echo-stdlib-include:
+	@echo "STDLIB_INCLUDE: $(STDLIB_INCLUDE)"
+
 echo-src:
 	@echo "SRC_FILES: $(SRC_FILES)"
 
@@ -130,6 +131,9 @@ style-check:
 
 style-fix:
 	clang-format --Werror -i src/**
+
+clang-tidy:
+	clang-tidy -p compile_commands.json src/**
 
 # Clean
 clean:

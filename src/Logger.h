@@ -17,7 +17,7 @@ public:
     {
     }
     void set_verbosity(LogLevel verbosity);
-    LogLevel get_verbosity() const;
+    [[nodiscard]] LogLevel get_verbosity() const;
 
     void log(std::string_view msg, LogLevel level = LogLevel::INFO) const;
 
@@ -28,7 +28,7 @@ public:
 
 protected:
     LogLevel verbosity;
-    virtual sensor_node_system::ErrorCode _log(std::string_view msg) const = 0;
+    [[nodiscard]] virtual sensor_node_system::ErrorCode _log(std::string_view msg) const = 0;
 };
 
 class USARTLogger : public Logger {
@@ -41,5 +41,5 @@ public:
 
 private:
     const USART& usart;
-    sensor_node_system::ErrorCode _log(std::string_view msg) const override;
+    [[nodiscard]] [[nodiscard]] sensor_node_system::ErrorCode _log(std::string_view msg) const override;
 };

@@ -57,7 +57,7 @@ public:
     void disable(BluePillDMAChannel channel) const;
     void reset() const; // DMA peripheral does not have a reset bit in RCC registers, but we can reset the DMA channels
     void reset(BluePillDMAChannel channel) const;
-    unsigned int get_count(BluePillDMAChannel channel) const;
+    [[nodiscard]] unsigned int get_count(BluePillDMAChannel channel) const;
 
 private:
     static constexpr std::array<const uint8_t, 7> all_channels = { static_cast<uint8_t>(BluePillDMAChannel::_1),

@@ -42,25 +42,24 @@ public:
     {
     }
 
-    void set_baudrate(unsigned int baudrate);
-    void set_databits(unsigned int databits);
-    void set_stopbits(USARTStopBits);
-    void set_mode(USARTMode);
-    void set_parity(USARTParity);
-    void set_flow_control(USARTFlowControl);
+    void set_baudrate(unsigned int baudrate) const;
+    void set_databits(unsigned int databits) const;
+    void set_stopbits(USARTStopBits stopbits) const;
+    void set_mode(USARTMode mode) const;
+    void set_parity(USARTParity parity) const;
+    void set_flow_control(USARTFlowControl flowcontrol) const;
     void setup(unsigned int baudrate, unsigned int databits, USARTStopBits stopbits, USARTMode mode, USARTParity parity,
         USARTFlowControl flowcontrol);
     void disable() const override;
     void enable() const override;
     void send_blocking(char c) const;
     void send_blocking(std::string_view str) const;
-    uint16_t recieve_blocking() const;
-    uint16_t recieve() const;
-    void rx_interrupt(bool set);
-    void tx_interrupt(bool set);
-    void error_interrupt(bool set);
-    bool get_is_setup() const;
-    uint32_t get_usart_csr_base_addr();
+    [[nodiscard]] uint16_t recieve_blocking() const;
+    [[nodiscard]] uint16_t recieve() const;
+    void rx_interrupt(bool set) const;
+    void tx_interrupt(bool set) const;
+    void error_interrupt(bool set) const;
+    [[nodiscard]] bool get_is_setup() const;
 
 protected:
     const uint32_t usart;
@@ -90,7 +89,7 @@ public:
     void disable_tx_dma() const;
     void reset_rx_dma() const;
     void reset_tx_dma() const;
-    unsigned int get_dma_count() const;
+    [[nodiscard]] unsigned int get_dma_count() const;
 
 private:
     const USARTDMA dma;

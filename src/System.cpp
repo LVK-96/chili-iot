@@ -47,7 +47,7 @@ void nop(unsigned int n)
 static void peripheral_setup()
 {
     // GPIO
-    for (auto& gpio : { peripherals::gpio_a, peripherals::gpio_b, peripherals::gpio_c }) {
+    for (const auto& gpio : { peripherals::gpio_a, peripherals::gpio_b, peripherals::gpio_c }) {
         gpio.reset_pulse();
     }
     peripherals::gpio_a.setup_pins(LOGGER_TX_PIN_NRO | NETWORK_TX_PIN_NRO, GPIOMode::OUTPUT_50_MHZ,
@@ -125,21 +125,22 @@ uint32_t diff_ticks(uint32_t older, uint32_t newer)
     // Systicks count down
     if (older >= newer) {
         return (older - newer);
-    } else {
-        // newer has wrapped around and is bigger than older
-        //-> count distance from older to SYSTICK_RELOAD_VALUE and then
-        // FROM SYSTICK_RELOAD_VALUE to newer
-        return older + 1 + (SYSTICK_RELOAD_VALUE - newer);
     }
+
+    // newer has wrapped around and is bigger than older
+    //-> count distance from older to SYSTICK_RELOAD_VALUE and then
+    // FROM SYSTICK_RELOAD_VALUE to newer
+    return older + 1 + (SYSTICK_RELOAD_VALUE - newer);
 }
 
 void sleep(uint32_t ticks)
 {
     while (ticks > 0) {
-        uint32_t sleep_ticks = std::min(ticks, SYSTICK_RELOAD_VALUE);
-        uint32_t t0 = systick();
-        while (diff_ticks(t0, systick()) < sleep_ticks)
+        uint32_t const sleep_ticks = std::min(ticks, SYSTICK_RELOAD_VALUE);
+        uint32_t const t0 = systick();
+        while (diff_ticks(t0, systick()) < sleep_ticks) {
             ;
+        }
         ticks -= sleep_ticks;
     }
 }

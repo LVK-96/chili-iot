@@ -43,8 +43,8 @@ public:
     void set_pins(uint16_t pins) const;
     void clear_pins(uint16_t pins) const;
     void toggle_pins(uint16_t pins) const;
-    uint16_t get_pins(uint16_t pins) const;
-    void setup_pins(uint16_t pins, GPIOMode mode, GPIOFunction function);
+    [[nodiscard]] uint16_t get_pins(uint16_t pins) const;
+    void setup_pins(uint16_t pins, GPIOMode mode, GPIOFunction function) const;
 
 private:
     const uint32_t port;

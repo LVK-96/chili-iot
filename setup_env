@@ -1,0 +1,10 @@
+# Source this script to setup the development environment
+
+# Setup pyton environment
+python -m venv .venv
+. .venv/bin/activate
+pip install -r requirements.txt
+pip install -r dev_requirements.txt
+
+# Setup compile_commands.json for clang-tidy
+./make_compile_commands.sh

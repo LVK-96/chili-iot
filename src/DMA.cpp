@@ -8,7 +8,7 @@ void DMA::setup_channel_from_peripheral_to_memory(BluePillDMAChannel channel, ui
     bool increment_mem, bool transfer_error_interrupt, bool half_transfer_interrupt,
     bool transfer_complete_interrupt) const
 {
-    uint32_t channel_uint32 = static_cast<uint32_t>(channel);
+    auto const channel_uint32 = static_cast<uint32_t>(channel);
 
     // Peripheral to memory mode
     dma_set_read_from_peripheral(dma, channel_uint32);
@@ -55,7 +55,7 @@ void DMA::enable() const { }
 
 void DMA::disable() const
 {
-    for (auto& channel : all_channels) {
+    for (const auto& channel : all_channels) {
         dma_disable_channel(dma, channel);
     }
 }
@@ -66,7 +66,7 @@ void DMA::disable(BluePillDMAChannel channel) const { dma_disable_channel(dma, s
 
 void DMA::reset() const
 {
-    for (auto& channel : all_channels) {
+    for (const auto& channel : all_channels) {
         dma_channel_reset(dma, channel);
     }
 }

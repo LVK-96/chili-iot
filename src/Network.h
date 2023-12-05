@@ -57,7 +57,7 @@ public:
 
     void connect_to_ap() const override
     {
-        std::array<volatile char, 1024> buf;
+        std::array<volatile char, 1024> buf {};
         if (send_command("AT+CWJAP_CUR=\"" WIFI_AP "\",\"" WIFI_PASS "\"", "OK", buf)) {
             logger.info("Network connection setup!\n");
         } else {
@@ -67,14 +67,14 @@ public:
 
     void publish_measurement(double temperature) const override
     {
-        // Send the temperature measurement
-        char cipsend[20];
-        snprintf(cipsend, 20, "AT+CIPSEND=%d", sizeof(temperature));
-
-        std::array<volatile char, 1024> buf;
-        send_command("AT+CIPSTART=\"UDP\",\"" SERVER_IP "\"," SERVER_PORT, "OK", buf);
-        send_command_dont_care(cipsend);
-        send_data_dont_care({ reinterpret_cast<uint8_t*>(&temperature), sizeof(temperature) });
+        std::array<volatile char, 1024> buf {};
+        if (send_command("AT+CIPSTART=\"UDP\",\"" SERVER_IP "\"," SERVER_PORT, "OK", buf)) {
+            // Send the temperature measurement
+            char cipsend[20];
+            snprintf(cipsend, 20, "AT+CIPSEND=%d", sizeof(temperature));
+            send_command_dont_care(cipsend);
+            send_data_dont_care({ reinterpret_cast<uint8_t*>(&temperature), sizeof(temperature) });
+        }
     }
 
     void test_connection() const override { send_command_dont_care("AT"); }
@@ -99,7 +99,7 @@ private:
         usart.send_blocking("\r\n");
     }
 
-    bool send_command(std::string_view cmd, std::string_view ok_response, std::span<volatile char> response_buf) const
+    [[nodiscard]] bool send_command(std::string_view cmd, std::string_view ok_response, std::span<volatile char> response_buf) const
     {
         using namespace std::literals; // std::string_view literals
 
@@ -134,7 +134,7 @@ private:
             auto read = response_buf.size() - count;
 
             // Split respone by line by line, check if any of the lines contains the OK response
-            std::string_view sv { const_cast<char*>(response_buf.data()), read };
+            const std::string_view sv { const_cast<char*>(response_buf.data()), read };
             ok = std::ranges::any_of(sv | std::views::lazy_split("\r\n"sv),
                 [ok_response](auto const& line) { return !std::ranges::search(line, ok_response).empty(); });
         }

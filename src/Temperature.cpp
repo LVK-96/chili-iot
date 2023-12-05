@@ -10,7 +10,7 @@
 
 sensor_node_system::ErrorCode BME280TemperatureSensor::init()
 {
-    int8_t res = bme280_init(&bme280);
+    const int8_t res = bme280_init(&bme280);
     if (res != BME280_OK) {
         return sensor_node_system::ErrorCode::TEMPERATURE_INIT_ERROR;
     }
@@ -19,8 +19,8 @@ sensor_node_system::ErrorCode BME280TemperatureSensor::init()
 
 std::optional<double> BME280TemperatureSensor::read() const
 {
-    struct bme280_data read_data;
-    int8_t res = bme280_get_sensor_data(BME280_TEMP, &read_data, &bme280);
+    struct bme280_data read_data { };
+    const int8_t res = bme280_get_sensor_data(BME280_TEMP, &read_data, &bme280);
     if (res != BME280_OK) {
         return std::nullopt;
     }
@@ -30,13 +30,13 @@ std::optional<double> BME280TemperatureSensor::read() const
 void BME280TemperatureSensor::write_reg(uint8_t addr, std::span<const uint8_t> data) const
 {
     // Write BME280 register file @addr
-    i2c.write(bme280_addr, addr);
-    i2c.write(bme280_addr, data);
+    std::ignore = i2c.write(bme280_addr, addr);
+    std::ignore = i2c.write(bme280_addr, data);
 }
 
 void BME280TemperatureSensor::read_reg(uint8_t addr, std::span<uint8_t> data) const
 {
     // Read BME280 register file @addr
-    i2c.write(bme280_addr, addr);
-    i2c.read(bme280_addr, data);
+    std::ignore = i2c.write(bme280_addr, addr);
+    std::ignore = i2c.read(bme280_addr, data);
 }

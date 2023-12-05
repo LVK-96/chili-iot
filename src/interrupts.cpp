@@ -37,11 +37,11 @@ void dma1_channel6_isr(void)
 {
     constexpr uint32_t dma = DMA1;
     constexpr uint8_t channel = DMA_CHANNEL6;
-    bool transfer_error_interrupt
+    bool const transfer_error_interrupt
         = dma_get_interrupt_flag(dma, channel, DMA_TEIF) && get_dma_error_interrupt_enable_flag(dma, channel);
-    bool half_interrupt
+    bool const half_interrupt
         = dma_get_interrupt_flag(dma, channel, DMA_HTIF) && get_dma_half_interrupt_enable_flag(dma, channel);
-    bool transfer_complete_interrupt
+    bool const transfer_complete_interrupt
         = dma_get_interrupt_flag(dma, channel, DMA_TCIF) && get_dma_complete_interrupt_enable_flag(dma, channel);
 
     if (transfer_error_interrupt) {

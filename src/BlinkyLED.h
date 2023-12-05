@@ -7,7 +7,7 @@
 
 class BlinkyLED {
 public:
-    constexpr BlinkyLED() noexcept {};
+    constexpr BlinkyLED() noexcept = default;
     virtual void toggle() const = 0;
     virtual void on() const = 0;
     virtual void off() const = 0;
@@ -16,8 +16,7 @@ public:
 class GPIOLED : public BlinkyLED {
 public:
     constexpr GPIOLED(const GPIOPin& pin) noexcept
-        : BlinkyLED()
-        , pin(pin)
+        : pin(pin)
     {
     }
     void toggle() const override;
