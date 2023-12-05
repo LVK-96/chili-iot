@@ -39,6 +39,7 @@ TGT_CXXFLAGS += -I$(OPENCM3_DIR)/include
 TGT_CXXFLAGS += -I$(BME280_DIR)
 TGT_CXXFLAGS += -Isrc
 TGT_CXXFLAGS += -MD
+TGT_CXXFLAGS += -D WIFI_AP=$(WIFI_AP) -D WIFI_PASS=$(WIFI_PASS) -D SERVER_IP=$(SERVER_IP) -D SERVER_PORT=$(SERVER_PORT)
 
 # C compiler flags for libopencm3
 TGT_CFLAGS := $(OPT_FLAGS)
@@ -100,17 +101,18 @@ libopencm3: submodules/libopencm3/lib/libopencm3_stm32f1.a
 # sensor node
 elf: $(BUILD_DIR)/$(BINARY).elf
 
-bin: $(BUILD_DIR) $(LIB_DIR) libopencm3 $(BUILD_DIR)/$(BINARY).bin
+bin: $(BUILD_DIR)/$(BINARY).bin
 
 $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf
 	$(OBJCOPY) -Obinary $< $@
 
-$(BUILD_DIR)/%.elf: $(OBJS) libbme280 libopencm3 $(LDSCRIPT)
+$(BUILD_DIR)/%.elf: libbme280 libopencm3 $(BUILD_DIR) $(OBJS)
 	$(LD) $(TGT_LDFLAGS) $(OBJS) $(LDLIBS) -o $@
 	$(SIZE) $@
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
-	$(CXX) $(TGT_CXXFLAGS) -o $@ -c $<
+	@echo "CXX $<"
+	@$(CXX) $(TGT_CXXFLAGS) -o $@ -c $<
 
 # Bosch BME280 driver
 libbme280: $(LIB_DIR)/libbme280.a
@@ -118,8 +120,9 @@ libbme280: $(LIB_DIR)/libbme280.a
 $(LIB_DIR)/libbme280.a : $(LIB_DIR)/bme280.o
 	$(AR) rcs $@ $<
 
-$(LIB_DIR)/bme280.o: $(BME280_DIR)/bme280.c
-	$(CXX) $(TGT_CXXFLAGS) -Wno-missing-field-initializers -o $@ -c $< # Bosch driver gives missing-field-initializers warning
+$(LIB_DIR)/bme280.o: $(BME280_DIR)/bme280.c $(LIB_DIR)
+	@echo "CXX $<"
+	@$(CXX) $(TGT_CXXFLAGS) -Wno-missing-field-initializers -o $@ -c $< # Bosch driver gives missing-field-initializers warning
 
 # Style checks
 style-check:
@@ -153,3 +156,4 @@ default: bin
 .DEFAULT_GOAL := default
 
 -include $(DEPENDS)
+-include .secrets
