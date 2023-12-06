@@ -26,18 +26,20 @@ enum class ErrorCode : uint8_t {
     OK = 0,
     TEMPERATURE_INIT_ERROR = 1,
     USART_NOT_SETUP_ERROR = 10,
+    NETWORK_RESPONSE_NOT_OK_ERROR = 20,
+    NETWORK_RESPONSE_OVERRUN_ERROR = 21,
     UNEXPECTED_ERROR = 255
 };
 
 void nop(unsigned int n);
-ErrorCode setup();
+void network_setup();
+void temperature_setup();
+void setup();
 
 // Time functions
 uint32_t systick();
-uint32_t diff_ticks(uint32_t older, uint32_t newer);
 void sleep(uint32_t ticks);
-void sleep_us(uint32_t us);
-void sleep_ms(uint32_t ms);
+void sleep_ms(unsigned int ms);
 
 // Time related constants
 // These are actually programmed into the CSRs in
@@ -48,7 +50,7 @@ constexpr unsigned int APB2_CLOCK_MHZ = 72;
 // libopencm3: systick_set_clocksource(STK_CSR_CLKSOURCE_AHB_DIV8)
 constexpr unsigned int SYSTICK_CLOCK_MHZ = AHB_CLOCK_MHZ / 8; // 9 MHz
 constexpr unsigned int SYSTICK_BITS = 24;
-constexpr uint32_t SYSTICK_RELOAD_VALUE = UINT32_MAX & mask32<SYSTICK_BITS>();
+constexpr uint32_t SYSTICK_RELOAD_VALUE = 8999; // tick every 1ms
 
 // What pins are used
 constexpr unsigned int LED_PIN_NRO = GPIO13;

@@ -20,19 +20,18 @@ SensorNode::SensorNode(
 
 void SensorNode::main_loop()
 {
-    network.reset(); // Reset the network device
-    network.connect_to_ap(); // Connect to the network
     while (true) {
         // Blink the led
         led.toggle();
 
-        // Read & log temperature
-        auto read_temperature = temperature.read();
-        if (read_temperature) {
-            printf("Temperature: %.2lf\n", read_temperature.value());
+        // Read & send temperature
+        if (auto read_temperature = temperature.read()) {
+            if (network.publish_measurement(read_temperature.value())
+                == sensor_node_system::ErrorCode::NETWORK_RESPONSE_NOT_OK_ERROR) {
+                sensor_node_system::network_setup(); // Reset the network connection if we got a not OK response
+            }
+        } else {
+            sensor_node_system::temperature_setup(); // Reset the temperature sensor if the reading failed
         }
-
-        // Wait a bit and do it again
-        sensor_node_system::sleep_ms(1000);
     }
 }

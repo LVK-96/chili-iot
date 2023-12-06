@@ -64,6 +64,8 @@ private:
 
     static void bme280_delay_us(uint32_t period, [[maybe_unused]] void* intf_ptr)
     {
-        sensor_node_system::sleep_us(period);
+        // This will only be called with period == 2000 from the BOSCH driver
+        // so this is OK as we don't need a more accurate sleep, but not ideal
+        sensor_node_system::sleep_ms(period / 1000);
     }
 };

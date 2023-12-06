@@ -2,6 +2,7 @@
 #include <span>
 
 #include "USART.h"
+#include "interrupts.h"
 
 void USART::set_baudrate(unsigned int baudrate) const { usart_set_baudrate(usart, baudrate); }
 
@@ -109,11 +110,17 @@ void USARTWithDMA::reset_rx_dma() const
     // Clear the RXNE bit to make sure the dma starts next time
     USART_SR(usart) &= ~USART_SR_RXNE;
 
-    // Clear overrun error
+    // Clear overrun error bit
     (void)USART_SR(usart);
     (void)USART_DR(usart);
 
     dma.dma.reset(dma.rx_channel);
+
+    // Clear old interrupt flags
+    dma_buffer_full = false;
+    dma_buffer_half = false;
+    dma_error = false;
+    usart2_overrun_error = false;
 }
 
 void USARTWithDMA::reset_tx_dma() const { dma.dma.reset(dma.tx_channel); }

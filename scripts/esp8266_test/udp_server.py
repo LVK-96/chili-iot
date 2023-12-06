@@ -28,7 +28,12 @@ def server(stop_event: Optional[threading.Event] = None) -> None:
             if err.args[0] != socket.EAGAIN and err.args[0] != socket.EWOULDBLOCK:
                 raise err
         else:
-            print(f"Server: Received message: {data.decode('utf-8')}")
+            try:
+                msg = data.decode('utf-8')
+            except UnicodeDecodeError:
+                msg = "0x" + data.hex()
+            finally:
+                print(f"Server: Received message: {msg}")
         # Check for the stop event -> when it is set we should close the server
         if (stop_event is not None) and stop_event.is_set():
             sock.close()

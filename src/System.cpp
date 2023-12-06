@@ -105,56 +105,74 @@ static void interrupt_setup()
 {
     nvic_enable_irq(NVIC_DMA1_CHANNEL6_IRQ); // DMA1 Channel 6, USART2 RX uses this channel
     nvic_enable_irq(NVIC_USART2_IRQ); // USART2 interrupts
+    systick_interrupt_enable();
 }
 
-static ErrorCode module_setup() { return modules::temperature.init(); }
+void temperature_setup()
+{
+    while (modules::temperature.init() != ErrorCode::OK) {
+        ;
+    }
+}
 
-ErrorCode setup()
+void network_setup()
+{
+    do {
+        modules::network.reset();
+    } while (modules::network.connect_to_ap() != ErrorCode::OK);
+}
+
+void setup()
 {
     clock_setup();
-    systick_setup();
+
+    // After the peripherals are setup the logger is ready
     peripheral_setup();
+    modules::logger.info("Starting sensor node...\n");
+    modules::logger.info("Peripherals setup!\n");
+
     interrupt_setup();
-    return module_setup();
+    modules::logger.info("Interrupts setup!\n");
+
+    systick_setup();
+    modules::logger.info("Systick counter setup!\n");
+
+    modules::logger.info("Setting up temperature sensor...\n");
+    temperature_setup();
+    modules::logger.info("Temperature sensor setup!\n");
+
+    modules::logger.info("Setting up network connection...\n");
+    network_setup();
+    modules::logger.info("Network connection setup!\n");
 }
 
-uint32_t systick() { return systick_get_value(); }
+uint32_t systick() { return systick_counter; }
 
-uint32_t diff_ticks(uint32_t older, uint32_t newer)
+static uint32_t systick_delta(uint32_t start, uint32_t end)
 {
-    // Systicks count down
-    if (older >= newer) {
-        return (older - newer);
+    uint32_t diff = 0;
+    if (end > start) {
+        diff = end - start;
+    } else {
+        diff = UINT32_MAX - (start - end) + 1;
     }
 
-    // newer has wrapped around and is bigger than older
-    //-> count distance from older to SYSTICK_RELOAD_VALUE and then
-    // FROM SYSTICK_RELOAD_VALUE to newer
-    return older + 1 + (SYSTICK_RELOAD_VALUE - newer);
+    return diff;
 }
 
 void sleep(uint32_t ticks)
 {
-    while (ticks > 0) {
-        uint32_t const sleep_ticks = std::min(ticks, SYSTICK_RELOAD_VALUE);
-        uint32_t const t0 = systick();
-        while (diff_ticks(t0, systick()) < sleep_ticks) {
-            ;
-        }
-        ticks -= sleep_ticks;
-    }
+    unsigned int slept_ticks = 0;
+    const unsigned int start = systick();
+    do {
+        slept_ticks = systick_delta(start, systick());
+    } while (slept_ticks < ticks);
 }
 
-void sleep_us(uint32_t us)
+void sleep_ms(unsigned int ms)
 {
-    constexpr unsigned int ticks_in_us = SYSTICK_CLOCK_MHZ;
-    sleep(ticks_in_us * us);
-}
-
-void sleep_ms(uint32_t ms)
-{
-    constexpr unsigned int ticks_in_ms = (SYSTICK_CLOCK_MHZ)*1e3;
-    sleep(ticks_in_ms * ms);
+    static constexpr unsigned int ticks_in_ms = 1;
+    sleep(ms * ticks_in_ms);
 }
 
 }

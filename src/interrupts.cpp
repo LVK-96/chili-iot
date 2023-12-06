@@ -56,7 +56,6 @@ void dma1_channel6_isr(void)
 
     if (transfer_complete_interrupt) {
         dma_clear_interrupt_flags(dma, channel, DMA_TCIF);
-        usart_disable_rx_dma(USART2);
         dma_disable_channel(dma, channel);
         dma_buffer_full = true;
     }
@@ -65,9 +64,12 @@ void dma1_channel6_isr(void)
 volatile std::atomic_bool usart2_overrun_error = false;
 void usart2_isr(void)
 {
-    if (((USART_CR1(USART2) & USART_CR1_RXNEIE) != 0) && ((USART_CR3(USART2) & USART_CR3_EIE) != 0)
-        && ((USART_SR(USART2) & USART_SR_ORE) != 0)) {
+    if (((USART_CR3(USART2) & USART_CR3_EIE) != 0) && ((USART_SR(USART2) & USART_SR_ORE) != 0)) {
         (void)USART2_DR;
+        usart_disable_error_interrupt(USART2);
         usart2_overrun_error = true;
     }
 }
+
+volatile std::atomic_uint32_t systick_counter = 0;
+void sys_tick_handler(void) { systick_counter += 1; }

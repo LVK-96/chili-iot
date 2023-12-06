@@ -35,8 +35,8 @@
 class Network {
 public:
     virtual void reset() const = 0;
-    virtual void connect_to_ap() const = 0;
-    virtual void publish_measurement(double temperature) const = 0;
+    virtual sensor_node_system::ErrorCode connect_to_ap() const = 0;
+    virtual sensor_node_system::ErrorCode publish_measurement(double temperature) const = 0;
     virtual void test_connection() const = 0;
 };
 
@@ -50,31 +50,49 @@ public:
 
     void reset() const override
     {
+        logger.info("Resetting ESP8266...\n");
         send_command_dont_care("AT+RST");
-        sensor_node_system::sleep_ms(2 * response_time); // Wait a bit so the ESP8266 has time to reset
-        logger.info("Network reset!\n");
+        sensor_node_system::sleep_ms(reset_time); // Wait a bit so the ESP8266 has time to reset
+        logger.info("ESP8266 reset!\n");
     }
 
-    void connect_to_ap() const override
+    sensor_node_system::ErrorCode connect_to_ap() const override
     {
-        std::array<volatile char, 1024> buf {};
-        if (send_command("AT+CWJAP_CUR=\"" WIFI_AP "\",\"" WIFI_PASS "\"", "OK", buf)) {
-            logger.info("Network connection setup!\n");
+        sensor_node_system::ErrorCode res = sensor_node_system::ErrorCode::OK;
+        std::array<volatile char, 128> buf {};
+        if ((res = send_command("AT+CWJAP_CUR=\"" WIFI_AP "\",\"" WIFI_PASS "\"", "OK", buf))
+            == sensor_node_system::ErrorCode::OK) {
+            logger.info("Connencted to AP: " WIFI_AP "!\n");
         } else {
-            logger.info("Failed to setup network connection!\n");
+            logger.error("Failed to connect to AP: " WIFI_AP "!\n");
         }
+
+        return res;
     }
 
-    void publish_measurement(double temperature) const override
+    sensor_node_system::ErrorCode publish_measurement(double temperature) const override
     {
-        std::array<volatile char, 1024> buf {};
-        if (send_command("AT+CIPSTART=\"UDP\",\"" SERVER_IP "\"," SERVER_PORT, "OK", buf)) {
-            // Send the temperature measurement
+        sensor_node_system::ErrorCode res = sensor_node_system::ErrorCode::OK;
+        std::array<volatile char, 64> buf {};
+        // Open the UDP connetion
+        if ((res = send_command("AT+CIPSTART=\"UDP\",\"" SERVER_IP "\"," SERVER_PORT, "OK", buf))
+            == sensor_node_system::ErrorCode::OK) {
             char cipsend[20];
+            // The size of the data to send
             snprintf(cipsend, 20, "AT+CIPSEND=%d", sizeof(temperature));
             send_command_dont_care(cipsend);
+            sensor_node_system::sleep_ms(break_time);
+            // Send the temperature measurement
             send_data_dont_care({ reinterpret_cast<uint8_t*>(&temperature), sizeof(temperature) });
+            // Close the UDP connection
+            sensor_node_system::sleep_ms(break_time);
+            send_command_dont_care("AT+CIPCLOSE");
+            logger.info("Sent temperature measurement\n");
+        } else {
+            logger.error("Failed to send the temperature measurement\n");
         }
+
+        return res;
     }
 
     void test_connection() const override { send_command_dont_care("AT"); }
@@ -83,7 +101,9 @@ private:
     const Logger& logger;
     USARTWithDMA& usart;
 
-    constexpr static unsigned int response_time = 4000;
+    constexpr static unsigned int response_time = 6000;
+    constexpr static unsigned int reset_time = 8000;
+    constexpr static unsigned int break_time = 100;
 
     void send_data_dont_care(std::span<uint8_t> data) const
     {
@@ -99,18 +119,14 @@ private:
         usart.send_blocking("\r\n");
     }
 
-    [[nodiscard]] bool send_command(std::string_view cmd, std::string_view ok_response, std::span<volatile char> response_buf) const
+    [[nodiscard]] sensor_node_system::ErrorCode send_command(
+        std::string_view cmd, std::string_view ok_response, std::span<volatile char> response_buf) const
     {
         using namespace std::literals; // std::string_view literals
 
         // Enable usart interrupts
-        usart2_overrun_error = false;
         usart.error_interrupt(true);
-        usart.rx_interrupt(true);
         // Enable usart DMA
-        dma_buffer_full = false;
-        dma_buffer_half = false;
-        dma_error = false;
         usart.enable_rx_dma(reinterpret_cast<uint32_t>(response_buf.data()), response_buf.size());
 
         // Send the command
@@ -122,26 +138,30 @@ private:
         usart.disable_rx_dma();
         // Disable usart interrupts
         usart.error_interrupt(false);
-        usart.rx_interrupt(false);
 
         // Check the response
-        bool ok = false;
+        auto res = sensor_node_system::ErrorCode::OK;
         // If we have an overrun error it means that we missed some output -> automatic fail
         // maybe you need a bigger buffer?
+        unsigned int read = 0;
         if (!usart2_overrun_error) {
             // Check how many bytes were received
             auto count = usart.get_dma_count();
-            auto read = response_buf.size() - count;
+            read = response_buf.size() - count;
 
             // Split respone by line by line, check if any of the lines contains the OK response
             const std::string_view sv { const_cast<char*>(response_buf.data()), read };
-            ok = std::ranges::any_of(sv | std::views::lazy_split("\r\n"sv),
-                [ok_response](auto const& line) { return !std::ranges::search(line, ok_response).empty(); });
+            if (!(std::ranges::any_of(sv | std::views::lazy_split("\r\n"sv),
+                    [ok_response](auto const& line) { return !std::ranges::search(line, ok_response).empty(); }))) {
+                res = sensor_node_system::ErrorCode::NETWORK_RESPONSE_NOT_OK_ERROR;
+            }
         }
 
-        // Clear the overrun error if it happened
-        usart2_overrun_error = false;
+        if (usart2_overrun_error) {
+            logger.error("ESP8266 response caused an USART overrun error! Is the reponse buffer big enough?\n");
+            res = sensor_node_system::ErrorCode::NETWORK_RESPONSE_OVERRUN_ERROR;
+        }
 
-        return ok;
+        return res;
     }
 };
