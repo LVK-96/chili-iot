@@ -35,14 +35,14 @@
 class Network {
 public:
     virtual void reset() const = 0;
-    virtual sensor_node_system::ErrorCode connect_to_ap() const = 0;
-    virtual sensor_node_system::ErrorCode publish_measurement(double temperature) const = 0;
+    [[nodiscard]] [[nodiscard]] virtual sensor_node_system::ErrorCode connect_to_ap() const = 0;
+    [[nodiscard]] [[nodiscard]] virtual sensor_node_system::ErrorCode publish_measurement(double temperature) const = 0;
     virtual void test_connection() const = 0;
 };
 
-class ESP8266Network : public Network {
+class ESP8266Network final : public Network {
 public:
-    constexpr ESP8266Network(const Logger& logger, USARTWithDMA& usart) noexcept
+    constexpr ESP8266Network(const Logger* logger, const USARTWithDMA* usart) noexcept
         : logger(logger)
         , usart(usart)
     {
@@ -50,46 +50,44 @@ public:
 
     void reset() const override
     {
-        logger.info("Resetting ESP8266...\n");
+        logger->info("Resetting ESP8266...\n");
         send_command_dont_care("AT+RST");
         sensor_node_system::sleep_ms(reset_time); // Wait a bit so the ESP8266 has time to reset
-        logger.info("ESP8266 reset!\n");
+        logger->info("ESP8266 reset!\n");
     }
 
-    sensor_node_system::ErrorCode connect_to_ap() const override
+    [[nodiscard]] sensor_node_system::ErrorCode connect_to_ap() const override
     {
-        sensor_node_system::ErrorCode res = sensor_node_system::ErrorCode::OK;
         std::array<volatile char, 128> buf {};
-        if ((res = send_command("AT+CWJAP_CUR=\"" WIFI_AP "\",\"" WIFI_PASS "\"", "OK", buf))
-            == sensor_node_system::ErrorCode::OK) {
-            logger.info("Connencted to AP: " WIFI_AP "!\n");
+        auto res = send_command("AT+CWJAP_CUR=\"" WIFI_AP "\",\"" WIFI_PASS "\"", "OK", buf);
+        if (res == sensor_node_system::ErrorCode::OK) {
+            logger->info("Connencted to AP: " WIFI_AP "!\n");
         } else {
-            logger.error("Failed to connect to AP: " WIFI_AP "!\n");
+            logger->error("Failed to connect to AP: " WIFI_AP "!\n");
         }
 
         return res;
     }
 
-    sensor_node_system::ErrorCode publish_measurement(double temperature) const override
+    [[nodiscard]] sensor_node_system::ErrorCode publish_measurement(double temperature) const override
     {
-        sensor_node_system::ErrorCode res = sensor_node_system::ErrorCode::OK;
         std::array<volatile char, 64> buf {};
         // Open the UDP connetion
-        if ((res = send_command("AT+CIPSTART=\"UDP\",\"" SERVER_IP "\"," SERVER_PORT, "OK", buf))
-            == sensor_node_system::ErrorCode::OK) {
-            char cipsend[20];
+        auto res = send_command("AT+CIPSTART=\"UDP\",\"" SERVER_IP "\"," SERVER_PORT, "OK", buf);
+        if (res == sensor_node_system::ErrorCode::OK) {
+            std::array<char, 20> cipsend {};
             // The size of the data to send
-            snprintf(cipsend, 20, "AT+CIPSEND=%d", sizeof(temperature));
-            send_command_dont_care(cipsend);
+            snprintf(cipsend.data(), 20, "AT+CIPSEND=%d", sizeof(temperature));
+            send_command_dont_care({ cipsend.data(), cipsend.size() });
             sensor_node_system::sleep_ms(break_time);
             // Send the temperature measurement
             send_data_dont_care({ reinterpret_cast<uint8_t*>(&temperature), sizeof(temperature) });
             // Close the UDP connection
             sensor_node_system::sleep_ms(break_time);
             send_command_dont_care("AT+CIPCLOSE");
-            logger.info("Sent temperature measurement\n");
+            logger->info("Sent temperature measurement\n");
         } else {
-            logger.error("Failed to send the temperature measurement\n");
+            logger->error("Failed to send the temperature measurement\n");
         }
 
         return res;
@@ -98,8 +96,8 @@ public:
     void test_connection() const override { send_command_dont_care("AT"); }
 
 private:
-    const Logger& logger;
-    USARTWithDMA& usart;
+    const Logger* logger;
+    const USARTWithDMA* usart;
 
     constexpr static unsigned int response_time = 6000;
     constexpr static unsigned int reset_time = 8000;
@@ -108,15 +106,15 @@ private:
     void send_data_dont_care(std::span<uint8_t> data) const
     {
         for (auto& d : data) {
-            usart.send_blocking(d);
+            usart->send_blocking(d);
         }
-        usart.send_blocking("\r\n");
+        usart->send_blocking("\r\n");
     }
 
     void send_command_dont_care(std::string_view cmd) const
     {
-        usart.send_blocking(cmd);
-        usart.send_blocking("\r\n");
+        usart->send_blocking(cmd);
+        usart->send_blocking("\r\n");
     }
 
     [[nodiscard]] sensor_node_system::ErrorCode send_command(
@@ -125,9 +123,9 @@ private:
         using namespace std::literals; // std::string_view literals
 
         // Enable usart interrupts
-        usart.error_interrupt(true);
+        usart->error_interrupt(true);
         // Enable usart DMA
-        usart.enable_rx_dma(reinterpret_cast<uint32_t>(response_buf.data()), response_buf.size());
+        usart->enable_rx_dma(reinterpret_cast<uint32_t>(response_buf.data()), response_buf.size());
 
         // Send the command
         send_command_dont_care(cmd);
@@ -135,9 +133,9 @@ private:
         sensor_node_system::sleep_ms(response_time);
 
         // Disable DMA
-        usart.disable_rx_dma();
+        usart->disable_rx_dma();
         // Disable usart interrupts
-        usart.error_interrupt(false);
+        usart->error_interrupt(false);
 
         // Check the response
         auto res = sensor_node_system::ErrorCode::OK;
@@ -146,7 +144,7 @@ private:
         unsigned int read = 0;
         if (!usart2_overrun_error) {
             // Check how many bytes were received
-            auto count = usart.get_dma_count();
+            auto count = usart->get_dma_count();
             read = response_buf.size() - count;
 
             // Split respone by line by line, check if any of the lines contains the OK response
@@ -158,7 +156,7 @@ private:
         }
 
         if (usart2_overrun_error) {
-            logger.error("ESP8266 response caused an USART overrun error! Is the reponse buffer big enough?\n");
+            logger->error("ESP8266 response caused an USART overrun error! Is the reponse buffer big enough?\n");
             res = sensor_node_system::ErrorCode::NETWORK_RESPONSE_OVERRUN_ERROR;
         }
 

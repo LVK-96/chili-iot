@@ -20,20 +20,20 @@ namespace peripherals {
     GPIOPort gpio_a { BluePillGPIOPort::A, RCC_GPIOA, RST_GPIOA };
     GPIOPort gpio_b { BluePillGPIOPort::B, RCC_GPIOB, RST_GPIOB };
     GPIOPort gpio_c { BluePillGPIOPort::C, RCC_GPIOC, RST_GPIOC };
-    GPIOPin led_pin { LED_PIN_NRO, gpio_c };
+    GPIOPin led_pin { LED_PIN_NRO, &gpio_c };
     DMA dma1 { BluePillDMAController::_1, RCC_DMA1 }; // DMA peripherals don't have reset bits in RCC CSRs
     USART usart1 { BluePillUSART::_1, RCC_USART1, RST_USART1 };
     USARTWithDMA usart2 { BluePillUSART::_2, RCC_USART2, RST_USART2,
-        { .dma = dma1, .rx_channel = BluePillDMAChannel::_6, .tx_channel = BluePillDMAChannel::_7 } };
+        { .dma = &dma1, .rx_channel = BluePillDMAChannel::_6, .tx_channel = BluePillDMAChannel::_7 } };
     I2C i2c1 { BluePillI2C::_1, RCC_I2C1, RST_I2C1 };
 }
 
 namespace modules {
-    GPIOLED led { peripherals::led_pin };
-    USARTLogger logger { Logger::LogLevel::INFO, peripherals::usart1 };
-    BME280TemperatureSensor temperature { logger, peripherals::i2c1,
+    GPIOLED led { &peripherals::led_pin };
+    USARTLogger logger { Logger::LogLevel::INFO, &peripherals::usart1 };
+    BME280TemperatureSensor temperature { &logger, &peripherals::i2c1,
         BME280I2CBusAddr::SECONDARY }; // The Waveshare BME280 module defaults to the secondary I2C address (0x77)
-    ESP8266Network network { logger, peripherals::usart2 };
+    ESP8266Network network { &logger, &peripherals::usart2 };
 }
 
 void nop(unsigned int n)

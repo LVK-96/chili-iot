@@ -62,24 +62,24 @@ public:
     [[nodiscard]] bool get_is_setup() const;
 
 protected:
-    const uint32_t usart;
+    uint32_t usart;
 
 private:
     bool is_setup = false;
 };
 
 struct USARTDMA {
-    const DMA& dma;
-    const BluePillDMAChannel rx_channel;
-    const BluePillDMAChannel tx_channel;
+    const DMA* dma;
+    BluePillDMAChannel rx_channel;
+    BluePillDMAChannel tx_channel;
 };
 
-class USARTWithDMA : public USART {
+class USARTWithDMA final : public USART {
 public:
     constexpr USARTWithDMA(
-        BluePillUSART usart, rcc_periph_clken clken, rcc_periph_rst rst, const USARTDMA& dma) noexcept
+        BluePillUSART usart, rcc_periph_clken clken, rcc_periph_rst rst, const USARTDMA& dma_channels) noexcept
         : USART(usart, clken, rst)
-        , dma(dma)
+        , dma_channels(dma_channels)
     {
     }
 
@@ -92,5 +92,5 @@ public:
     [[nodiscard]] unsigned int get_dma_count() const;
 
 private:
-    const USARTDMA dma;
+    USARTDMA dma_channels;
 };

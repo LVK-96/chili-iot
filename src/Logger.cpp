@@ -54,9 +54,9 @@ void Logger::error(std::string_view msg, sensor_node_system::ErrorCode code) con
 
 sensor_node_system::ErrorCode USARTLogger::_log(std::string_view msg) const
 {
-    if (usart.get_is_setup()) {
+    if (usart->get_is_setup()) {
         for (const auto& ch : msg) {
-            usart.send_blocking(ch);
+            usart->send_blocking(ch);
         }
         return sensor_node_system::ErrorCode::OK;
     }

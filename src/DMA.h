@@ -38,7 +38,7 @@ enum class BluePillDMAPriority {
     VERY_HIGH = DMA_CCR_PL_VERY_HIGH
 };
 
-class DMA : public NoResetPeripheral {
+class DMA final : public NoResetPeripheral {
 public:
     constexpr DMA(BluePillDMAController dma, rcc_periph_clken clken) noexcept
         : NoResetPeripheral(clken)
@@ -64,5 +64,5 @@ private:
         static_cast<uint8_t>(BluePillDMAChannel::_2), static_cast<uint8_t>(BluePillDMAChannel::_3),
         static_cast<uint8_t>(BluePillDMAChannel::_4), static_cast<uint8_t>(BluePillDMAChannel::_5),
         static_cast<uint8_t>(BluePillDMAChannel::_6), static_cast<uint8_t>(BluePillDMAChannel::_7) };
-    const uint32_t dma;
+    uint32_t dma;
 };

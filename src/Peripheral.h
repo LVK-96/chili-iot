@@ -18,7 +18,7 @@ public:
     void clk_disable() const { rcc_periph_clock_disable(clken); }
 
 private:
-    const rcc_periph_clken clken;
+    rcc_periph_clken clken;
 };
 
 class Peripheral : public NoResetPeripheral {
@@ -33,5 +33,5 @@ public:
     void reset_pulse() const { rcc_periph_reset_pulse(rst); }
 
 private:
-    const rcc_periph_rst rst;
+    rcc_periph_rst rst;
 };

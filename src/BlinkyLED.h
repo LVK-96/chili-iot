@@ -13,16 +13,17 @@ public:
     virtual void off() const = 0;
 };
 
-class GPIOLED : public BlinkyLED {
+class GPIOLED final : public BlinkyLED {
 public:
-    constexpr GPIOLED(const GPIOPin& pin) noexcept
+    constexpr GPIOLED(const GPIOPin* pin) noexcept
         : pin(pin)
     {
     }
+
     void toggle() const override;
     void on() const override;
     void off() const override;
 
 private:
-    const GPIOPin& pin;
+    const GPIOPin* pin;
 };

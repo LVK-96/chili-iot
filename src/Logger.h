@@ -31,15 +31,15 @@ protected:
     [[nodiscard]] virtual sensor_node_system::ErrorCode _log(std::string_view msg) const = 0;
 };
 
-class USARTLogger : public Logger {
+class USARTLogger final : public Logger {
 public:
-    constexpr USARTLogger(LogLevel verbosity, const USART& usart) noexcept
+    constexpr USARTLogger(LogLevel verbosity, const USART* usart) noexcept
         : Logger(verbosity)
         , usart(usart)
     {
     }
 
 private:
-    const USART& usart;
-    [[nodiscard]] [[nodiscard]] sensor_node_system::ErrorCode _log(std::string_view msg) const override;
+    const USART* usart;
+    [[nodiscard]] sensor_node_system::ErrorCode _log(std::string_view msg) const override;
 };

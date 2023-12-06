@@ -10,7 +10,7 @@
 
 // Forward declarations
 class GPIOPort;
-class GPIOPin;
+struct GPIOPin;
 class USART;
 class USARTWithDMA;
 class I2C;

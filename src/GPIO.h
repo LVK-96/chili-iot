@@ -27,7 +27,7 @@ enum class GPIOFunction : uint8_t {
     OUTPUT_ALTFN_OPENDRAIN = GPIO_CNF_OUTPUT_ALTFN_OPENDRAIN,
 };
 
-class GPIOPort : public Peripheral {
+class GPIOPort final : public Peripheral {
 public:
     constexpr GPIOPort(BluePillGPIOPort port, rcc_periph_clken clken, rcc_periph_rst rst) noexcept
         : Peripheral(clken, rst)
@@ -47,15 +47,15 @@ public:
     void setup_pins(uint16_t pins, GPIOMode mode, GPIOFunction function) const;
 
 private:
-    const uint32_t port;
+    uint32_t port;
 };
 
 struct GPIOPin {
-    constexpr GPIOPin(uint16_t pin_nro, const GPIOPort& port)
+    constexpr GPIOPin(uint16_t pin_nro, const GPIOPort *port)
         : pin_nro(pin_nro)
         , port(port)
     {
     }
-    const uint16_t pin_nro;
-    const GPIOPort& port;
+    uint16_t pin_nro;
+    const GPIOPort* port;
 };

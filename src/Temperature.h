@@ -17,9 +17,9 @@ public:
 
 enum class BME280I2CBusAddr : uint8_t { PRIMARY = BME280_I2C_ADDR_PRIM, SECONDARY = BME280_I2C_ADDR_SEC };
 
-class BME280TemperatureSensor : public TemperatureSensor {
+class BME280TemperatureSensor final : public TemperatureSensor {
 public:
-    constexpr BME280TemperatureSensor(const Logger& logger, const I2C& i2c, BME280I2CBusAddr bme280_addr) noexcept
+    constexpr BME280TemperatureSensor(const Logger* logger, const I2C* i2c, BME280I2CBusAddr bme280_addr) noexcept
         : logger(logger)
         , i2c(i2c)
         , bme280_addr(static_cast<uint8_t>(bme280_addr))
@@ -40,9 +40,9 @@ public:
     void read_reg(uint8_t addr, std::span<uint8_t> data) const;
 
 private:
-    const Logger& logger;
-    const I2C& i2c;
-    const uint8_t bme280_addr;
+    const Logger* logger;
+    const I2C* i2c;
+    uint8_t bme280_addr;
     mutable struct bme280_dev bme280;
 
     // For the Bosch BME280 driver

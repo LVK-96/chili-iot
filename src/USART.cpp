@@ -77,7 +77,7 @@ bool USART::get_is_setup() const { return is_setup; }
 void USARTWithDMA::enable_rx_dma(uint32_t dest_addr, unsigned int number_of_data) const
 {
     reset_rx_dma();
-    dma.dma.setup_channel_from_peripheral_to_memory(dma.rx_channel, // channel
+    dma_channels.dma->setup_channel_from_peripheral_to_memory(dma_channels.rx_channel, // channel
         (uint32_t)&USART_DR(usart), // source address
         BluePillDMAPeripheralWordSize::BYTE, // source word size
         BluePillDMAMemWordSize::BYTE, // destination word size
@@ -85,7 +85,7 @@ void USARTWithDMA::enable_rx_dma(uint32_t dest_addr, unsigned int number_of_data
         dest_addr, number_of_data, false, true, true, false, true);
 
     usart_enable_rx_dma(usart);
-    dma.dma.enable(dma.rx_channel);
+    dma_channels.dma->enable(dma_channels.rx_channel);
 }
 
 void USARTWithDMA::enable_tx_dma() const
@@ -96,13 +96,13 @@ void USARTWithDMA::enable_tx_dma() const
 void USARTWithDMA::disable_rx_dma() const
 {
     usart_disable_rx_dma(usart);
-    dma.dma.disable(dma.rx_channel);
+    dma_channels.dma->disable(dma_channels.rx_channel);
 }
 
 void USARTWithDMA::disable_tx_dma() const
 {
     usart_disable_tx_dma(usart);
-    dma.dma.disable(dma.tx_channel);
+    dma_channels.dma->disable(dma_channels.tx_channel);
 }
 
 void USARTWithDMA::reset_rx_dma() const
@@ -114,7 +114,7 @@ void USARTWithDMA::reset_rx_dma() const
     (void)USART_SR(usart);
     (void)USART_DR(usart);
 
-    dma.dma.reset(dma.rx_channel);
+    dma_channels.dma->reset(dma_channels.rx_channel);
 
     // Clear old interrupt flags
     dma_buffer_full = false;
@@ -123,6 +123,6 @@ void USARTWithDMA::reset_rx_dma() const
     usart2_overrun_error = false;
 }
 
-void USARTWithDMA::reset_tx_dma() const { dma.dma.reset(dma.tx_channel); }
+void USARTWithDMA::reset_tx_dma() const { dma_channels.dma->reset(dma_channels.tx_channel); }
 
-unsigned int USARTWithDMA::get_dma_count() const { return dma.dma.get_count(dma.rx_channel); }
+unsigned int USARTWithDMA::get_dma_count() const { return dma_channels.dma->get_count(dma_channels.rx_channel); }

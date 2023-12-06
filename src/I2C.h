@@ -14,7 +14,7 @@ class Logger;
 
 enum class BluePillI2C : unsigned int { _1 = I2C1, _2 = I2C2 };
 
-class I2C : public Peripheral {
+class I2C final : public Peripheral {
 public:
     constexpr I2C(BluePillI2C i2c_dev, rcc_periph_clken clken, rcc_periph_rst rst) noexcept
         : Peripheral(clken, rst)
@@ -30,6 +30,5 @@ public:
     [[nodiscard]] sensor_node_system::ErrorCode write(uint8_t addr, uint8_t data) const;
 
 private:
-    const unsigned int i2c_dev;
-    const uint32_t timeout = 0xffffff - 1;
+    unsigned int i2c_dev;
 };
