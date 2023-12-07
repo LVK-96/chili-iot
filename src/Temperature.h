@@ -12,6 +12,7 @@
 
 class TemperatureSensor {
 public:
+    [[nodiscard]] virtual sensor_node_system::ErrorCode init() const = 0;
     [[nodiscard]] virtual std::optional<double> read() const = 0;
 };
 
@@ -34,7 +35,7 @@ public:
     {
     }
 
-    sensor_node_system::ErrorCode init();
+    sensor_node_system::ErrorCode init() const override;
     std::optional<double> read() const override;
     void write_reg(uint8_t addr, std::span<const uint8_t> data) const;
     void read_reg(uint8_t addr, std::span<uint8_t> data) const;

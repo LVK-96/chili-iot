@@ -10,12 +10,15 @@
 
 class SensorNode {
 public:
-    SensorNode(
-        const BlinkyLED* led, const TemperatureSensor* temperature, const Network* network);
+    SensorNode(const BlinkyLED* led, const TemperatureSensor* temperature, const Network* network);
+    void setup();
     [[noreturn]] void main_loop();
 
 private:
     const BlinkyLED* led;
     const TemperatureSensor* temperature;
     const Network* network;
+
+    void setup_temperature();
+    void setup_network();
 };

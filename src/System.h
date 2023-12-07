@@ -15,10 +15,7 @@ class USART;
 class USARTWithDMA;
 class I2C;
 class DMA;
-class GPIOLED;
 class USARTLogger;
-class BME280TemperatureSensor;
-class ESP8266Network;
 
 namespace sensor_node_system {
 
@@ -32,8 +29,6 @@ enum class ErrorCode : uint8_t {
 };
 
 void nop(unsigned int n);
-void network_setup();
-void temperature_setup();
 void setup();
 
 // Time functions
@@ -54,6 +49,7 @@ constexpr uint32_t SYSTICK_RELOAD_VALUE = 8999; // tick every 1ms
 
 // What pins are used
 constexpr unsigned int LED_PIN_NRO = GPIO13;
+constexpr unsigned int ESP_RESET_PIN_NRO = GPIO15;
 constexpr unsigned int LOGGER_TX_PIN_NRO = GPIO_USART1_TX;
 constexpr unsigned int NETWORK_TX_PIN_NRO = GPIO_USART2_TX;
 constexpr unsigned int NETWORK_RX_PIN_NRO = GPIO_USART2_RX;
@@ -71,17 +67,13 @@ namespace peripherals {
     extern GPIOPort gpio_b;
     extern GPIOPort gpio_c;
     extern GPIOPin led_pin;
+    extern GPIOPin esp_reset_pin;
     extern USART usart1;
     extern USARTWithDMA usart2;
     extern I2C i2c1;
     extern DMA dma1;
 };
 
-namespace modules {
-    extern GPIOLED led;
-    extern USARTLogger logger;
-    extern BME280TemperatureSensor temperature;
-    extern ESP8266Network network;
-};
+extern USARTLogger logger;
 
 };

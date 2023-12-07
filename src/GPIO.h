@@ -51,7 +51,7 @@ private:
 };
 
 struct GPIOPin {
-    constexpr GPIOPin(uint16_t pin_nro, const GPIOPort *port)
+    constexpr GPIOPin(uint16_t pin_nro, const GPIOPort* port)
         : pin_nro(pin_nro)
         , port(port)
     {

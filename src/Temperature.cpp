@@ -8,7 +8,7 @@
 #include "System.h"
 #include "Temperature.h"
 
-sensor_node_system::ErrorCode BME280TemperatureSensor::init()
+sensor_node_system::ErrorCode BME280TemperatureSensor::init() const
 {
     const int8_t res = bme280_init(&bme280);
     if (res != BME280_OK) {

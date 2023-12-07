@@ -9,16 +9,36 @@
 #include "System.h"
 #include "Temperature.h"
 
-SensorNode::SensorNode(
-    const BlinkyLED* led, const TemperatureSensor* temperature, const Network* network)
+SensorNode::SensorNode(const BlinkyLED* led, const TemperatureSensor* temperature, const Network* network)
     : led(led)
     , temperature(temperature)
     , network(network)
 {
 }
 
+void SensorNode::setup_network()
+{
+    do {
+        network->reset();
+    } while (network->connect_to_ap() != sensor_node_system::ErrorCode::OK);
+}
+
+void SensorNode::setup_temperature()
+{
+    while (temperature->init() != sensor_node_system::ErrorCode::OK) {
+        ;
+    }
+}
+
+void SensorNode::setup()
+{
+    setup_temperature();
+    setup_network();
+}
+
 void SensorNode::main_loop()
 {
+    setup();
     while (true) {
         // Blink the led
         led->toggle();
@@ -27,10 +47,10 @@ void SensorNode::main_loop()
         if (auto read_temperature = temperature->read()) {
             if (network->publish_measurement(read_temperature.value())
                 == sensor_node_system::ErrorCode::NETWORK_RESPONSE_NOT_OK_ERROR) {
-                sensor_node_system::network_setup(); // Reset the network connection if we got a not OK response
+                setup_network(); // Reset the network connection if we got a not OK response
             }
         } else {
-            sensor_node_system::temperature_setup(); // Reset the temperature sensor if the reading failed
+            setup_temperature(); // Reset the temperature sensor if the reading failed
         }
     }
 }

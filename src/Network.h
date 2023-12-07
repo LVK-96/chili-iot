@@ -10,6 +10,7 @@
 #include <libopencm3/stm32/dma.h>
 #include <libopencm3/stm32/usart.h>
 
+#include "GPIO.h"
 #include "Logger.h"
 #include "System.h"
 #include "USART.h"
@@ -35,17 +36,24 @@
 class Network {
 public:
     virtual void reset() const = 0;
-    [[nodiscard]] [[nodiscard]] virtual sensor_node_system::ErrorCode connect_to_ap() const = 0;
-    [[nodiscard]] [[nodiscard]] virtual sensor_node_system::ErrorCode publish_measurement(double temperature) const = 0;
+    [[nodiscard]] virtual sensor_node_system::ErrorCode connect_to_ap() const = 0;
+    [[nodiscard]] virtual sensor_node_system::ErrorCode publish_measurement(double temperature) const = 0;
     virtual void test_connection() const = 0;
 };
 
 class ESP8266Network final : public Network {
 public:
-    constexpr ESP8266Network(const Logger* logger, const USARTWithDMA* usart) noexcept
+    constexpr ESP8266Network(const Logger* logger, const USARTWithDMA* usart, const GPIOPin* reset_pin) noexcept
         : logger(logger)
         , usart(usart)
+        , reset_pin(reset_pin)
     {
+    }
+
+    void hard_reset()
+    {
+        reset_pin->port->clear_pins(reset_pin->pin_nro);
+        reset_pin->port->set_pins(reset_pin->pin_nro);
     }
 
     void reset() const override
@@ -98,6 +106,7 @@ public:
 private:
     const Logger* logger;
     const USARTWithDMA* usart;
+    const GPIOPin* reset_pin; // Reset when transitions from low -> high
 
     constexpr static unsigned int response_time = 6000;
     constexpr static unsigned int reset_time = 8000;

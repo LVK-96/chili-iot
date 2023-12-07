@@ -21,6 +21,7 @@ namespace peripherals {
     GPIOPort gpio_b { BluePillGPIOPort::B, RCC_GPIOB, RST_GPIOB };
     GPIOPort gpio_c { BluePillGPIOPort::C, RCC_GPIOC, RST_GPIOC };
     GPIOPin led_pin { LED_PIN_NRO, &gpio_c };
+    GPIOPin esp_reset_pin { ESP_RESET_PIN_NRO, &gpio_c };
     DMA dma1 { BluePillDMAController::_1, RCC_DMA1 }; // DMA peripherals don't have reset bits in RCC CSRs
     USART usart1 { BluePillUSART::_1, RCC_USART1, RST_USART1 };
     USARTWithDMA usart2 { BluePillUSART::_2, RCC_USART2, RST_USART2,
@@ -28,13 +29,7 @@ namespace peripherals {
     I2C i2c1 { BluePillI2C::_1, RCC_I2C1, RST_I2C1 };
 }
 
-namespace modules {
-    GPIOLED led { &peripherals::led_pin };
-    USARTLogger logger { Logger::LogLevel::INFO, &peripherals::usart1 };
-    BME280TemperatureSensor temperature { &logger, &peripherals::i2c1,
-        BME280I2CBusAddr::SECONDARY }; // The Waveshare BME280 module defaults to the secondary I2C address (0x77)
-    ESP8266Network network { &logger, &peripherals::usart2 };
-}
+USARTLogger logger { Logger::LogLevel::INFO, &peripherals::usart1 };
 
 void nop(unsigned int n)
 {
@@ -67,6 +62,7 @@ static void peripheral_setup()
     };
     usart_setup_helper(peripherals::usart1, LOGGER_BAUDRATE, LOGGER_DATABITS, USARTStopBits::_1, USARTMode::TX,
         USARTParity::NONE, USARTFlowControl::NONE);
+    logger.info("Starting sensor node...\n"); // We can use the logger now
     usart_setup_helper(peripherals::usart2, NETWORK_BAUDRATE, NETWORK_DATABITS, USARTStopBits::_1, USARTMode::TX_RX,
         USARTParity::NONE, USARTFlowControl::NONE);
 
@@ -80,6 +76,8 @@ static void peripheral_setup()
     peripherals::i2c1.disable();
     peripherals::i2c1.setup();
     peripherals::i2c1.enable();
+
+    logger.info("Peripherals setup!\n");
 }
 
 static void clock_setup()
@@ -99,6 +97,7 @@ static void systick_setup()
 {
     systick_set_reload(SYSTICK_RELOAD_VALUE);
     systick_counter_enable();
+    logger.info("Systick counters setup!\n");
 }
 
 static void interrupt_setup()
@@ -106,44 +105,15 @@ static void interrupt_setup()
     nvic_enable_irq(NVIC_DMA1_CHANNEL6_IRQ); // DMA1 Channel 6, USART2 RX uses this channel
     nvic_enable_irq(NVIC_USART2_IRQ); // USART2 interrupts
     systick_interrupt_enable();
-}
-
-void temperature_setup()
-{
-    while (modules::temperature.init() != ErrorCode::OK) {
-        ;
-    }
-}
-
-void network_setup()
-{
-    do {
-        modules::network.reset();
-    } while (modules::network.connect_to_ap() != ErrorCode::OK);
+    logger.info("Interrupts setup!\n");
 }
 
 void setup()
 {
     clock_setup();
-
-    // After the peripherals are setup the logger is ready
     peripheral_setup();
-    modules::logger.info("Starting sensor node...\n");
-    modules::logger.info("Peripherals setup!\n");
-
     interrupt_setup();
-    modules::logger.info("Interrupts setup!\n");
-
     systick_setup();
-    modules::logger.info("Systick counter setup!\n");
-
-    modules::logger.info("Setting up temperature sensor...\n");
-    temperature_setup();
-    modules::logger.info("Temperature sensor setup!\n");
-
-    modules::logger.info("Setting up network connection...\n");
-    network_setup();
-    modules::logger.info("Network connection setup!\n");
 }
 
 uint32_t systick() { return systick_counter; }
