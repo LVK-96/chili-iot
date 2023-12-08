@@ -4,3 +4,6 @@
 [submodule "submodules/BME280_driver"]
 	path = submodules/BME280_driver
 	url = https://github.com/boschsensortec/BME280_driver.git
+[submodule "submodules/FreeRTOS-Kernel"]
+	path = submodules/FreeRTOS-Kernel
+	url = https://github.com/FreeRTOS/FreeRTOS-Kernel.git
