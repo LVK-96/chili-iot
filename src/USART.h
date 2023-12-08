@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
+#include <atomic>
 
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/usart.h>
@@ -68,10 +69,18 @@ private:
     bool is_setup = false;
 };
 
+struct DMAChannelAndFlags
+{
+    BluePillDMAChannel channel;
+    volatile std::atomic_bool *error_flag;
+    volatile std::atomic_bool *half_flag;
+    volatile std::atomic_bool *complete_flag;
+};
+
 struct USARTDMA {
     const DMA* dma;
-    BluePillDMAChannel rx_channel;
-    BluePillDMAChannel tx_channel;
+    DMAChannelAndFlags rx_channel;
+    DMAChannelAndFlags tx_channel;
 };
 
 class USARTWithDMA final : public USART {
@@ -84,7 +93,7 @@ public:
     }
 
     void enable_rx_dma(uint32_t dest_addr, unsigned int number_of_data) const;
-    void enable_tx_dma() const;
+    void enable_tx_dma(uint32_t source_addr, unsigned int number_of_data) const;
     void disable_rx_dma() const;
     void disable_tx_dma() const;
     void reset_rx_dma() const;

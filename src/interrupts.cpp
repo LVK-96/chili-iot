@@ -29,14 +29,9 @@ static bool get_dma_error_interrupt_enable_flag(uint32_t dma, uint8_t channel)
     return get_dma_interrupt_flag(dma, channel, DMA_CCR_TEIE);
 }
 
-// USART2 Rx DMA1 channel 6.
-volatile std::atomic_bool dma_buffer_full = false;
-volatile std::atomic_bool dma_buffer_half = false;
-volatile std::atomic_bool dma_error = false;
-void dma1_channel6_isr(void)
+
+static void dma_channel_isr(uint32_t dma, uint8_t channel, DMAISRFlags &flags)
 {
-    constexpr uint32_t dma = DMA1;
-    constexpr uint8_t channel = DMA_CHANNEL6;
     bool const transfer_error_interrupt
         = dma_get_interrupt_flag(dma, channel, DMA_TEIF) && get_dma_error_interrupt_enable_flag(dma, channel);
     bool const half_interrupt
@@ -46,19 +41,33 @@ void dma1_channel6_isr(void)
 
     if (transfer_error_interrupt) {
         dma_clear_interrupt_flags(dma, channel, DMA_TEIF);
-        dma_error = true;
+        flags.dma_error = true;
     }
 
     if (half_interrupt) {
         dma_clear_interrupt_flags(dma, channel, DMA_HTIF);
-        dma_buffer_half = true;
+        flags.dma_half= true;
     }
 
     if (transfer_complete_interrupt) {
         dma_clear_interrupt_flags(dma, channel, DMA_TCIF);
         dma_disable_channel(dma, channel);
-        dma_buffer_full = true;
+        flags.dma_complete = true;
     }
+}
+
+// USART2 Rx DMA1 channel 6
+DMAISRFlags dma1_channel6_flags;
+void dma1_channel6_isr(void)
+{
+    dma_channel_isr(DMA1, DMA_CHANNEL6, dma1_channel6_flags);
+}
+
+// USART2 Tx DMA1 channel 7
+DMAISRFlags dma1_channel7_flags;
+void dma1_channel7_isr(void)
+{
+    dma_channel_isr(DMA1, DMA_CHANNEL7, dma1_channel7_flags);
 }
 
 volatile std::atomic_bool usart2_overrun_error = false;

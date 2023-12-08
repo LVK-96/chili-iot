@@ -13,6 +13,7 @@
 #include "System.h"
 #include "Temperature.h"
 #include "USART.h"
+#include "interrupts.h"
 
 namespace sensor_node_system {
 
@@ -24,8 +25,25 @@ namespace peripherals {
     GPIOPin esp_reset_pin { ESP_RESET_PIN_NRO, &gpio_c };
     DMA dma1 { BluePillDMAController::_1, RCC_DMA1 }; // DMA peripherals don't have reset bits in RCC CSRs
     USART usart1 { BluePillUSART::_1, RCC_USART1, RST_USART1 };
-    USARTWithDMA usart2 { BluePillUSART::_2, RCC_USART2, RST_USART2,
-        { .dma = &dma1, .rx_channel = BluePillDMAChannel::_6, .tx_channel = BluePillDMAChannel::_7 } };
+    USARTWithDMA usart2 {
+        BluePillUSART::_2,
+        RCC_USART2,
+        RST_USART2,
+        { .dma = &dma1,
+          .rx_channel = {
+            .channel = BluePillDMAChannel::_6,
+            .error_flag = &dma1_channel6_flags.dma_error,
+            .half_flag = &dma1_channel6_flags.dma_half,
+            .complete_flag = &dma1_channel6_flags.dma_complete,
+          },
+          .tx_channel = {
+            .channel = BluePillDMAChannel::_7,
+            .error_flag = &dma1_channel7_flags.dma_error,
+            .half_flag = &dma1_channel7_flags.dma_half,
+            .complete_flag = &dma1_channel7_flags.dma_complete,
+          }
+        }
+    };
     I2C i2c1 { BluePillI2C::_1, RCC_I2C1, RST_I2C1 };
 }
 
@@ -51,6 +69,7 @@ static void peripheral_setup()
     peripherals::gpio_b.setup_pins(I2C1_SCL_PIN_NRO | I2C1_SDA_PIN_NRO, GPIOMode::OUTPUT_50_MHZ,
         GPIOFunction::OUTPUT_ALTFN_OPENDRAIN); // B6 SCL, B7 SDA
     peripherals::gpio_c.setup_pins(LED_PIN_NRO, GPIOMode::OUTPUT_2_MHZ, GPIOFunction::OUTPUT_PUSHPULL); // C13 LED
+    peripherals::gpio_c.setup_pins(ESP_RESET_PIN_NRO, GPIOMode::OUTPUT_2_MHZ, GPIOFunction::OUTPUT_OPENDRAIN);
 
     // USART
     auto usart_setup_helper = [](USART& usart, unsigned int baudrate, unsigned int databits, USARTStopBits stopbits,

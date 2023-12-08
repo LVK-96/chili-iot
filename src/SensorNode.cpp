@@ -18,9 +18,17 @@ SensorNode::SensorNode(const BlinkyLED* led, const TemperatureSensor* temperatur
 
 void SensorNode::setup_network()
 {
-    do {
-        network->reset();
-    } while (network->connect_to_ap() != sensor_node_system::ErrorCode::OK);
+    unsigned int failures = 0;
+    while (network->connect_to_ap() != sensor_node_system::ErrorCode::OK) {
+        if (failures > 0) {
+            network->hard_reset();
+        } else {
+            network->reset();
+        }
+        failures++;
+    }
+
+    network->connect_to_server();
 }
 
 void SensorNode::setup_temperature()
@@ -45,12 +53,13 @@ void SensorNode::main_loop()
 
         // Read & send temperature
         if (auto read_temperature = temperature->read()) {
-            if (network->publish_measurement(read_temperature.value())
-                == sensor_node_system::ErrorCode::NETWORK_RESPONSE_NOT_OK_ERROR) {
-                setup_network(); // Reset the network connection if we got a not OK response
-            }
+            network->publish_measurement(read_temperature.value());
         } else {
             setup_temperature(); // Reset the temperature sensor if the reading failed
         }
+
+        // TODO: add a periodic test that we are still connected to the server
+
+        sensor_node_system::sleep_ms(1000);
     }
 }

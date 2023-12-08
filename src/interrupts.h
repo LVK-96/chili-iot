@@ -4,9 +4,15 @@
 #include <atomic>
 #include <cstdint>
 
-extern volatile std::atomic_bool dma_buffer_full;
-extern volatile std::atomic_bool dma_buffer_half;
-extern volatile std::atomic_bool dma_error;
+struct DMAISRFlags
+{
+    volatile std::atomic_bool dma_complete = false;
+    volatile std::atomic_bool dma_half = false;
+    volatile std::atomic_bool dma_error = false;
+};
+
+extern DMAISRFlags dma1_channel6_flags;
+extern DMAISRFlags dma1_channel7_flags;
 
 extern volatile std::atomic_bool usart2_overrun_error;
 

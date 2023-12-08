@@ -77,32 +77,45 @@ bool USART::get_is_setup() const { return is_setup; }
 void USARTWithDMA::enable_rx_dma(uint32_t dest_addr, unsigned int number_of_data) const
 {
     reset_rx_dma();
-    dma_channels.dma->setup_channel_from_peripheral_to_memory(dma_channels.rx_channel, // channel
+    dma_channels.dma->setup_channel(DMADirection::PER2MEM,
+        dma_channels.rx_channel.channel, // channel
         (uint32_t)&USART_DR(usart), // source address
         BluePillDMAPeripheralWordSize::BYTE, // source word size
+        dest_addr,
         BluePillDMAMemWordSize::BYTE, // destination word size
         BluePillDMAPriority::VERY_HIGH, // priority
-        dest_addr, number_of_data, false, true, true, false, true);
+        number_of_data, false, true, true, false, true);
 
     usart_enable_rx_dma(usart);
-    dma_channels.dma->enable(dma_channels.rx_channel);
+    dma_channels.dma->enable(dma_channels.rx_channel.channel);
 }
 
-void USARTWithDMA::enable_tx_dma() const
+void USARTWithDMA::enable_tx_dma(uint32_t source_addr, unsigned int number_of_data) const
 {
-    // FIXME: do nothing for now
+    reset_tx_dma();
+    dma_channels.dma->setup_channel(DMADirection::MEM2PER,
+        dma_channels.tx_channel.channel, // channel
+        (uint32_t)&USART_DR(usart), // destination address
+        BluePillDMAPeripheralWordSize::BYTE, // destination word size
+        source_addr,
+        BluePillDMAMemWordSize::BYTE, // source word size
+        BluePillDMAPriority::VERY_HIGH, // priority
+        number_of_data, false, true, true, false, true);
+
+    usart_enable_tx_dma(usart);
+    dma_channels.dma->enable(dma_channels.tx_channel.channel);
 }
 
 void USARTWithDMA::disable_rx_dma() const
 {
     usart_disable_rx_dma(usart);
-    dma_channels.dma->disable(dma_channels.rx_channel);
+    dma_channels.dma->disable(dma_channels.rx_channel.channel);
 }
 
 void USARTWithDMA::disable_tx_dma() const
 {
     usart_disable_tx_dma(usart);
-    dma_channels.dma->disable(dma_channels.tx_channel);
+    dma_channels.dma->disable(dma_channels.tx_channel.channel);
 }
 
 void USARTWithDMA::reset_rx_dma() const
@@ -114,15 +127,15 @@ void USARTWithDMA::reset_rx_dma() const
     (void)USART_SR(usart);
     (void)USART_DR(usart);
 
-    dma_channels.dma->reset(dma_channels.rx_channel);
+    dma_channels.dma->reset(dma_channels.rx_channel.channel);
 
     // Clear old interrupt flags
-    dma_buffer_full = false;
-    dma_buffer_half = false;
-    dma_error = false;
+    *(dma_channels.rx_channel.error_flag) = false;
+    *(dma_channels.rx_channel.half_flag) = false;
+    *(dma_channels.rx_channel.complete_flag) = false;
     usart2_overrun_error = false;
 }
 
-void USARTWithDMA::reset_tx_dma() const { dma_channels.dma->reset(dma_channels.tx_channel); }
+void USARTWithDMA::reset_tx_dma() const { dma_channels.dma->reset(dma_channels.tx_channel.channel); }
 
-unsigned int USARTWithDMA::get_dma_count() const { return dma_channels.dma->get_count(dma_channels.rx_channel); }
+unsigned int USARTWithDMA::get_dma_count() const { return dma_channels.dma->get_count(dma_channels.rx_channel.channel); }
