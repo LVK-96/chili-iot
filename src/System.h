@@ -15,9 +15,8 @@ class USART;
 class USARTWithDMA;
 class I2C;
 class DMA;
-class USARTLogger;
 
-namespace sensor_node_system {
+namespace bluepill {
 
 enum class ErrorCode : uint8_t {
     OK = 0,
@@ -28,13 +27,12 @@ enum class ErrorCode : uint8_t {
     UNEXPECTED_ERROR = 255
 };
 
-void nop(unsigned int n);
 void setup();
 
 // Time functions
 uint32_t systick();
 void sleep(uint32_t ticks);
-void sleep_ms(unsigned int ms);
+void busy_wait_ms(unsigned int ms);
 
 // Time related constants
 // These are actually programmed into the CSRs in
@@ -74,6 +72,4 @@ namespace peripherals {
     extern DMA dma1;
 };
 
-extern USARTLogger logger;
-
-};
+}; // namespace bluepill

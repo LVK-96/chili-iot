@@ -1,9 +1,9 @@
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 #include <optional>
 #include <string_view>
-#include <atomic>
 
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/usart.h>
@@ -69,12 +69,11 @@ private:
     bool is_setup = false;
 };
 
-struct DMAChannelAndFlags
-{
+struct DMAChannelAndFlags {
     BluePillDMAChannel channel;
-    volatile std::atomic_bool *error_flag;
-    volatile std::atomic_bool *half_flag;
-    volatile std::atomic_bool *complete_flag;
+    volatile std::atomic_bool* error_flag;
+    volatile std::atomic_bool* half_flag;
+    volatile std::atomic_bool* complete_flag;
 };
 
 struct USARTDMA {

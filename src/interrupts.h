@@ -4,8 +4,7 @@
 #include <atomic>
 #include <cstdint>
 
-struct DMAISRFlags
-{
+struct DMAISRFlags {
     volatile std::atomic_bool dma_complete = false;
     volatile std::atomic_bool dma_half = false;
     volatile std::atomic_bool dma_error = false;

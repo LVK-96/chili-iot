@@ -14,24 +14,21 @@ void I2C::enable() const { i2c_peripheral_enable(i2c_dev); }
 
 void I2C::disable() const { i2c_peripheral_disable(i2c_dev); }
 
-sensor_node_system::ErrorCode I2C::write(uint8_t addr, std::span<const uint8_t> data) const
+utils::ErrorCode I2C::write(uint8_t addr, std::span<const uint8_t> data) const
 {
     i2c_transfer7(i2c_dev, addr, data.data(), data.size(), nullptr, 0);
-    return sensor_node_system::ErrorCode::OK;
+    return utils::ErrorCode::OK;
 }
 
-sensor_node_system::ErrorCode I2C::read(uint8_t addr, std::span<uint8_t> data) const
+utils::ErrorCode I2C::read(uint8_t addr, std::span<uint8_t> data) const
 {
     i2c_transfer7(i2c_dev, addr, nullptr, 0, data.data(), data.size());
-    return sensor_node_system::ErrorCode::OK;
+    return utils::ErrorCode::OK;
 }
 
-sensor_node_system::ErrorCode I2C::write(uint8_t addr, uint8_t data) const
+utils::ErrorCode I2C::write(uint8_t addr, uint8_t data) const
 {
     return write(addr, std::span<const uint8_t, 1>(&data, 1));
 }
 
-sensor_node_system::ErrorCode I2C::read(uint8_t addr, uint8_t& data) const
-{
-    return read(addr, std::span<uint8_t, 1>(&data, 1));
-}
+utils::ErrorCode I2C::read(uint8_t addr, uint8_t& data) const { return read(addr, std::span<uint8_t, 1>(&data, 1)); }

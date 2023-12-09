@@ -39,7 +39,7 @@ void Logger::error(std::string_view msg) const
     log(msg, LogLevel::ERROR);
 }
 
-void Logger::error(std::string_view msg, sensor_node_system::ErrorCode code) const
+void Logger::error(std::string_view msg, utils::ErrorCode code) const
 {
     log("ERROR", LogLevel::ERROR);
 
@@ -52,14 +52,9 @@ void Logger::error(std::string_view msg, sensor_node_system::ErrorCode code) con
     log(msg, LogLevel::ERROR);
 }
 
-sensor_node_system::ErrorCode USARTLogger::_log(std::string_view msg) const
+void USARTLogger::_log(std::string_view msg) const
 {
-    if (usart->get_is_setup()) {
-        for (const auto& ch : msg) {
-            usart->send_blocking(ch);
-        }
-        return sensor_node_system::ErrorCode::OK;
+    for (const auto& ch : msg) {
+        usart->send_blocking(ch);
     }
-
-    return sensor_node_system::ErrorCode::USART_NOT_SETUP_ERROR;
 }

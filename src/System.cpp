@@ -2,20 +2,20 @@
 #include <array>
 #include <functional>
 
+#include <FreeRTOS.h>
+#include <task.h>
+
 #include <libopencm3/cm3/nvic.h>
 
-#include "BlinkyLED.h"
 #include "DMA.h"
 #include "GPIO.h"
 #include "I2C.h"
 #include "Logger.h"
-#include "Network.h"
 #include "System.h"
-#include "Temperature.h"
 #include "USART.h"
 #include "interrupts.h"
 
-namespace sensor_node_system {
+namespace bluepill {
 
 namespace peripherals {
     GPIOPort gpio_a { BluePillGPIOPort::A, RCC_GPIOA, RST_GPIOA };
@@ -46,8 +46,6 @@ namespace peripherals {
     };
     I2C i2c1 { BluePillI2C::_1, RCC_I2C1, RST_I2C1 };
 }
-
-USARTLogger logger { Logger::LogLevel::INFO, &peripherals::usart1 };
 
 void nop(unsigned int n)
 {
@@ -81,7 +79,7 @@ static void peripheral_setup()
     };
     usart_setup_helper(peripherals::usart1, LOGGER_BAUDRATE, LOGGER_DATABITS, USARTStopBits::_1, USARTMode::TX,
         USARTParity::NONE, USARTFlowControl::NONE);
-    logger.info("Starting sensor node...\n"); // We can use the logger now
+    utils::logger.info("Starting sensor node...\n"); // We can use the logger now
     usart_setup_helper(peripherals::usart2, NETWORK_BAUDRATE, NETWORK_DATABITS, USARTStopBits::_1, USARTMode::TX_RX,
         USARTParity::NONE, USARTFlowControl::NONE);
 
@@ -96,7 +94,7 @@ static void peripheral_setup()
     peripherals::i2c1.setup();
     peripherals::i2c1.enable();
 
-    logger.info("Peripherals setup!\n");
+    utils::logger.info("Peripherals setup!\n");
 }
 
 static void clock_setup()
@@ -116,15 +114,15 @@ static void systick_setup()
 {
     systick_set_reload(SYSTICK_RELOAD_VALUE);
     systick_counter_enable();
-    logger.info("Systick counters setup!\n");
+    utils::logger.info("Systick counters setup!\n");
 }
 
 static void interrupt_setup()
 {
     nvic_enable_irq(NVIC_DMA1_CHANNEL6_IRQ); // DMA1 Channel 6, USART2 RX uses this channel
     nvic_enable_irq(NVIC_USART2_IRQ); // USART2 interrupts
-    systick_interrupt_enable();
-    logger.info("Interrupts setup!\n");
+    // systick_interrupt_enable();
+    utils::logger.info("Interrupts setup!\n");
 }
 
 void setup()
@@ -133,9 +131,9 @@ void setup()
     peripheral_setup();
     interrupt_setup();
     systick_setup();
+    peripherals::gpio_c.setup_pins(LED_PIN_NRO, GPIOMode::OUTPUT_2_MHZ, GPIOFunction::OUTPUT_PUSHPULL); // C13 LED
+    peripherals::gpio_c.clk_enable();
 }
-
-uint32_t systick() { return systick_counter; }
 
 static uint32_t systick_delta(uint32_t start, uint32_t end)
 {
@@ -149,19 +147,15 @@ static uint32_t systick_delta(uint32_t start, uint32_t end)
     return diff;
 }
 
-void sleep(uint32_t ticks)
+void busy_wait(uint32_t ticks)
 {
     unsigned int slept_ticks = 0;
-    const unsigned int start = systick();
+    const unsigned int start = xTaskGetTickCount();
     do {
-        slept_ticks = systick_delta(start, systick());
+        slept_ticks = systick_delta(start, xTaskGetTickCount());
     } while (slept_ticks < ticks);
 }
 
-void sleep_ms(unsigned int ms)
-{
-    static constexpr unsigned int ticks_in_ms = 1;
-    sleep(ms * ticks_in_ms);
-}
+void busy_wait_ms(unsigned int ms) { busy_wait(ms * portTICK_RATE_MS); }
 
 }

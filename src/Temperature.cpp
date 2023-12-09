@@ -5,28 +5,34 @@
 #include <libopencm3/stm32/i2c.h>
 #include <libopencm3/stm32/rcc.h>
 
+#include "Logger.h"
 #include "System.h"
 #include "Temperature.h"
+#include "utils.h"
 
-sensor_node_system::ErrorCode BME280TemperatureSensor::init() const
+utils::ErrorCode BME280TemperatureSensor::init() const
 {
+    utils::logger.info("Initializing BME280...\n");
     const int8_t res = bme280_init(&bme280);
     if (res != BME280_OK) {
-        logger->error("Failed to initialize BME280!\n");
-        return sensor_node_system::ErrorCode::TEMPERATURE_INIT_ERROR;
+        utils::logger.error("Failed to initialize BME280!\n");
+        return utils::ErrorCode::TEMPERATURE_INIT_ERROR;
     }
-    logger->info("BME280 initialized!\n");
-    return sensor_node_system::ErrorCode::OK;
+    utils::logger.info("BME280 initialized!\n");
+    return utils::ErrorCode::OK;
 }
 
 std::optional<double> BME280TemperatureSensor::read() const
 {
+    utils::logger.info("Reading BME280...\n");
     struct bme280_data read_data { };
     const int8_t res = bme280_get_sensor_data(BME280_TEMP, &read_data, &bme280);
     if (res != BME280_OK) {
-        logger->error("Failed to read temperature!\n");
+        utils::logger.error("Failed to read temperature!\n");
         return std::nullopt;
     }
+    utils::logger.info("BME280 read!\n");
+    printf("Temperatue: %d\n", static_cast<int>(read_data.temperature));
     return read_data.temperature;
 }
 

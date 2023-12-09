@@ -138,4 +138,7 @@ void USARTWithDMA::reset_rx_dma() const
 
 void USARTWithDMA::reset_tx_dma() const { dma_channels.dma->reset(dma_channels.tx_channel.channel); }
 
-unsigned int USARTWithDMA::get_dma_count() const { return dma_channels.dma->get_count(dma_channels.rx_channel.channel); }
+unsigned int USARTWithDMA::get_dma_count() const
+{
+    return dma_channels.dma->get_count(dma_channels.rx_channel.channel);
+}

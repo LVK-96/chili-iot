@@ -1,20 +1,27 @@
-#include "SensorNode.h"
+#include <FreeRTOS.h>
+#include <task.h>
+
+#include "RTOSTasks.h"
 #include "System.h"
 
 int main()
 {
-    sensor_node_system::setup();
-    sensor_node_system::logger.info("System setup OK!\n");
+    // Setup the Bluepill board
+    bluepill::setup();
+    utils::logger.info("Board setup OK!\n");
 
-    GPIOLED led { &sensor_node_system::peripherals::led_pin };
-    BME280TemperatureSensor temperature { &sensor_node_system::logger, &sensor_node_system::peripherals::i2c1,
-        BME280I2CBusAddr::SECONDARY }; // The Waveshare BME280 module defaults to the secondary I2C address (0x77)
-    ESP8266Network network { &sensor_node_system::logger, &sensor_node_system::peripherals::usart2,
-        &sensor_node_system::peripherals::esp_reset_pin };
+    // Regiter tasks to FreeRTOS
+    xTaskCreate(led_task, "LED", configMINIMAL_STACK_SIZE, nullptr, configMAX_PRIORITIES - 2, nullptr);
+    xTaskCreate(temperature_task, "TEMPERATURE", 1024, nullptr, configMAX_PRIORITIES - 1, nullptr);
 
-    network.hard_reset(); // ESP8266 seems to be sometimes stuck in an unresponsive state, hard reset it to resolve it
+    // Start the FreeRTOS scheduler
+    utils::logger.info("Staring RTOS scheduler...\n");
+    vTaskStartScheduler();
+    utils::logger.error("RTOS scheduler returned! Maybe it ran out of heap...\n");
 
-    SensorNode(&led, &temperature, &network).main_loop();
+    while (true) {
+        ;
+    }
 
     return -1; // This will never be reached
 }

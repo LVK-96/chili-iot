@@ -12,7 +12,7 @@
 
 class TemperatureSensor {
 public:
-    [[nodiscard]] virtual sensor_node_system::ErrorCode init() const = 0;
+    [[nodiscard]] virtual utils::ErrorCode init() const = 0;
     [[nodiscard]] virtual std::optional<double> read() const = 0;
 };
 
@@ -20,9 +20,8 @@ enum class BME280I2CBusAddr : uint8_t { PRIMARY = BME280_I2C_ADDR_PRIM, SECONDAR
 
 class BME280TemperatureSensor final : public TemperatureSensor {
 public:
-    constexpr BME280TemperatureSensor(const Logger* logger, const I2C* i2c, BME280I2CBusAddr bme280_addr) noexcept
-        : logger(logger)
-        , i2c(i2c)
+    constexpr BME280TemperatureSensor(const I2C* i2c, BME280I2CBusAddr bme280_addr) noexcept
+        : i2c(i2c)
         , bme280_addr(static_cast<uint8_t>(bme280_addr))
         , bme280({ .chip_id = BME280_I2C_ADDR_SEC,
               .intf = BME280_I2C_INTF,
@@ -35,7 +34,7 @@ public:
     {
     }
 
-    sensor_node_system::ErrorCode init() const override;
+    utils::ErrorCode init() const override;
     std::optional<double> read() const override;
     void write_reg(uint8_t addr, std::span<const uint8_t> data) const;
     void read_reg(uint8_t addr, std::span<uint8_t> data) const;
@@ -67,6 +66,6 @@ private:
     {
         // This will only be called with period == 2000 from the BOSCH driver
         // so this is OK as we don't need a more accurate sleep, but not ideal
-        sensor_node_system::sleep_ms(period / 1000);
+        bluepill::busy_wait_ms(period / 1000);
     }
 };

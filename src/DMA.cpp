@@ -3,10 +3,9 @@
 #include "DMA.h"
 
 void DMA::setup_channel(DMADirection direction, BluePillDMAChannel channel, uint32_t peripheral_addr,
-    BluePillDMAPeripheralWordSize peripheral_word_size, uint32_t memory_addr,
-    BluePillDMAMemWordSize memory_word_size, BluePillDMAPriority priority, unsigned int number_of_data, bool increment_peripheral,
-    bool increment_mem, bool transfer_error_interrupt, bool half_transfer_interrupt,
-    bool transfer_complete_interrupt) const
+    BluePillDMAPeripheralWordSize peripheral_word_size, uint32_t memory_addr, BluePillDMAMemWordSize memory_word_size,
+    BluePillDMAPriority priority, unsigned int number_of_data, bool increment_peripheral, bool increment_mem,
+    bool transfer_error_interrupt, bool half_transfer_interrupt, bool transfer_complete_interrupt) const
 {
     auto const channel_uint8 = static_cast<uint8_t>(channel);
 

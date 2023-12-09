@@ -24,11 +24,11 @@ public:
     void info(std::string_view msg) const;
     void warning(std::string_view msg) const;
     void error(std::string_view msg) const;
-    void error(std::string_view msg, sensor_node_system::ErrorCode code) const;
+    void error(std::string_view msg, utils::ErrorCode code) const;
 
 protected:
     LogLevel verbosity;
-    [[nodiscard]] virtual sensor_node_system::ErrorCode _log(std::string_view msg) const = 0;
+    virtual void _log(std::string_view msg) const = 0;
 };
 
 class USARTLogger final : public Logger {
@@ -41,5 +41,5 @@ public:
 
 private:
     const USART* usart;
-    [[nodiscard]] sensor_node_system::ErrorCode _log(std::string_view msg) const override;
+    void _log(std::string_view msg) const override;
 };
