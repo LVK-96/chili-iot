@@ -3,19 +3,21 @@
 #include <utility>
 
 #include <FreeRTOS.h>
+#include <queue.h>
 #include <task.h>
 
+#include "BlinkyLED.h"
+#include "Network.h"
 #include "RTOSTasks.h"
+#include "System.h"
+#include "Temperature.h"
 #include "utils.h"
 
 static void setup_network(const Network& network)
 {
-    network.reset();
-    while (network.connect_to_ap() != utils::ErrorCode::OK) {
-        network.hard_reset();
+    while (network.init() != utils::ErrorCode::OK) {
+        ;
     }
-
-    network.connect_to_server();
 }
 
 static void setup_temperature(const TemperatureSensor& temperature)
@@ -25,45 +27,79 @@ static void setup_temperature(const TemperatureSensor& temperature)
     }
 }
 
-static void setup(const TemperatureSensor& temperature, const Network& network)
-{
-    setup_temperature(temperature);
-    setup_network(network);
-}
-
 void led_task([[maybe_unused]] void* a)
 {
-    GPIOLED led { &bluepill::peripherals::led_pin };
+    constexpr auto blink_delay = pdMS_TO_TICKS(1000);
+
+    auto args = static_cast<LedTaskArgs*>(a);
+    auto wake_time = xTaskGetTickCount();
     while (true) {
         // Blink the led
-        led.toggle();
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        args->led->toggle();
+        vTaskDelayUntil(&wake_time, blink_delay);
     }
 }
 
-void temperature_task([[maybe_unused]] void* a)
+void temperature_task(void* a)
 {
-    BME280TemperatureSensor temperature { &bluepill::peripherals::i2c1,
-        BME280I2CBusAddr::SECONDARY }; // The Waveshare BME280 module defaults to the secondary I2C address (0x77)
-    ESP8266Network network { &bluepill::peripherals::usart2, &bluepill::peripherals::esp_reset_pin };
+    constexpr auto measurement_delay = pdMS_TO_TICKS(2000);
 
-    setup(temperature, network);
+    // We should always have the notification already waiting as the setup task has higher priority
+    if (pdTRUE != xTaskNotifyWait(0, 0, nullptr, 0)) {
+        utils::logger.error("Temperature task started before setup is done!\n");
+        vTaskSuspendAll();
+    }
 
+    auto args = static_cast<TemperatureTaskArgs*>(a);
+    auto wake_time = xTaskGetTickCount();
+    auto last_temperature = args->temperature->read();
     while (true) {
         // Read & send temperature
-        if (auto read_temperature = temperature.read()) {
-            network.publish_measurement(read_temperature.value());
-        } else {
-            setup_temperature(temperature);
+        if (last_temperature) {
+            xQueueSendToBack(args->measurement_queue, &(last_temperature.value()), 0);
         }
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
+        last_temperature = args->temperature->read();
+        vTaskDelayUntil(&wake_time, measurement_delay);
     }
 }
 
-void vApplicationStackOverflowHook([[maybe_unused]] TaskHandle_t xTask, [[maybe_unused]] char* pcTaskName)
+void network_task(void* a)
+{
+    // We should always have the notification already waiting as the setup task has higher priority
+    if (pdTRUE != xTaskNotifyWait(0, 0, nullptr, 0)) {
+        utils::logger.error("Network task started before setup is done!\n");
+        vTaskSuspendAll();
+    }
+
+    const auto args = static_cast<NetworkTaskArgs*>(a);
+
+    while (true) {
+        double reading = 0;
+        if (xQueueReceive(args->measurement_queue, &reading, portMAX_DELAY) != errQUEUE_EMPTY) {
+            args->network->publish_measurement(reading);
+        }
+    }
+}
+
+void setup_task(void* a)
+{
+    const auto args = static_cast<SetupTaskArgs*>(a);
+    while (true) {
+        setup_temperature(*(args->temperature));
+        xTaskNotify(args->temperature_task, 0, eNoAction);
+        setup_network(*(args->network));
+        xTaskNotify(args->network_task, 0, eNoAction);
+        vTaskSuspend(args->self);
+    }
+}
+
+void vApplicationStackOverflowHook(TaskHandle_t xTask, char* pcTaskName)
 {
     while (true) {
-        utils::logger.log("STACK OVERFLOW!\n");
-        utils::nop(10000000);
+        utils::logger.error("STACK OVERFLOW!\n");
+        printf("xTask: 0x%lx\n", reinterpret_cast<uint32_t>(xTask));
+        printf(pcTaskName);
+        printf("\n");
+        utils::nop(10'000);
     }
 }

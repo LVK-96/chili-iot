@@ -39,6 +39,7 @@ class Network {
 public:
     virtual void reset() const = 0;
     virtual void hard_reset() const = 0;
+    virtual utils::ErrorCode init() const = 0;
     [[nodiscard]] virtual utils::ErrorCode connect_to_ap() const = 0;
     [[nodiscard]] virtual utils::ErrorCode connect_to_server() const = 0;
     virtual void disconnect_from_server() const = 0;
@@ -124,6 +125,17 @@ public:
         utils::logger.info("ESP8266 reset!\n");
     }
 
+    utils::ErrorCode init() const override
+    {
+        hard_reset();
+
+        while (connect_to_ap() != utils::ErrorCode::OK) {
+            hard_reset();
+        }
+
+        return connect_to_server();
+    }
+
     [[nodiscard]] utils::ErrorCode connect_to_ap() const override
     {
         utils::logger.info("Connecting to AP...\n");
@@ -168,13 +180,13 @@ private:
     const USARTWithDMA* usart;
     const GPIOPin* reset_pin; // Reset when transitions from low -> high
 
-    static constexpr bool debug = true;
+    static constexpr bool debug = false;
 
-    constexpr static unsigned int response_time = 6000;
+    constexpr static unsigned int response_time = 10'000;
     constexpr static unsigned int reset_time = 10'000; // This thing is sometimes really slow to reset...
     constexpr static unsigned int break_time = 5;
 
-    mutable std::array<volatile char, 512> buf {};
+    mutable std::array<volatile char, 1024> buf {};
 
     void send_data_dont_care(std::span<uint8_t> data) const
     {
