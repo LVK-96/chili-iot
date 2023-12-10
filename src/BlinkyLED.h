@@ -15,10 +15,14 @@ public:
 
 class GPIOLED final : public BlinkyLED {
 public:
+// GCC analyzer gives a analyzer-possible-null-dereference false positive here when called from std::make_unique
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wanalyzer-possible-null-dereference"
     constexpr GPIOLED(const GPIOPin* pin) noexcept
         : pin(pin)
     {
     }
+#pragma GCC diagnostic pop
 
     void toggle() const override;
     void on() const override;

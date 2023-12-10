@@ -33,6 +33,7 @@ STDLIB_INCLUDE   := $(shell $(CXX) -xc++ /dev/null -E -Wp,-v 2>&1 | sed -n 's,^ 
 FP_FLAGS         := -msoft-float
 ARCH_FLAGS       := -mthumb -mcpu=cortex-m3 -mfix-cortex-m3-ldrd $(FP_FLAGS)
 OPT_FLAGS        := -Os -fno-exceptions -ffunction-sections -fdata-sections
+ANALYZER_FLAGS   := -fanalyzer
 DEBUG_FLAGS      := # -g # uncomment this to get debug information for gdb
 WFLAGS           := -Wall -Wextra -Werror
 DEFINES          := -DSTM32F1
@@ -41,7 +42,7 @@ I_FLAGS          := -I$(OPENCM3_DIR)/include -I$(BME280_DIR) -I$(FREERTOS_DIR)/i
 # C++ compiler flags
 TGT_CXXFLAGS := $(OPT_FLAGS)
 TGT_CXXFLAGS += $(DEBUG_FLAGS)
-TGT_CXXFLAGS += -fanalyzer
+TGT_CXXFLAGS += $(ANALYZER_FLAGS)
 TGT_CXXFLAGS += -fno-use-cxa-atexit -fno-rtti
 TGT_CXXFLAGS += $(WFLAGS)
 TGT_CXXFLAGS += $(ARCH_FLAGS)
@@ -54,6 +55,7 @@ TGT_CXXFLAGS += -D WIFI_AP=$(WIFI_AP) -D WIFI_PASS=$(WIFI_PASS) -D SERVER_IP=$(S
 # C compiler flags for libopencm3
 TGT_CFLAGS := $(OPT_FLAGS)
 TGT_CFLAGS += $(DEBUG_FLAGS)
+TGT_CFLAGS += $(ANALYZER_FLAGS)
 TGT_CFLAGS += $(WFLAGS)
 TGT_CFLAGS += $(ARCH_FLAGS)
 TGT_CFLAGS += $(DEFINES)
@@ -146,30 +148,30 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@$(CXX) $(TGT_CXXFLAGS) -o $@ -c $<
 
 # FreeRTOS
-libfreertos: $(FREERTOS_LIB_DIR)/libfreertos.a
+libfreertos: $(FREERTOS_LIB_DIR) $(FREERTOS_LIB_DIR)/libfreertos.a
 
 $(FREERTOS_LIB_DIR)/libfreertos.a: $(FREERTOS_OBJS)
 	$(AR) rcs $@ $(FREERTOS_OBJS)
 
-$(FREERTOS_LIB_DIR)/%.o: $(FREERTOS_DIR)/%.c $(FREERTOS_LIB_DIR)
+$(FREERTOS_LIB_DIR)/%.o: $(FREERTOS_DIR)/%.c
 	@echo "CC $<"
 	@$(CC) $(TGT_CFLAGS) -o $@ -c $<
 
-$(FREERTOS_LIB_DIR)/heap_useNewlib_bluepill.o: $(FREERTOS_HEAP_DIR)/heap_useNewlib_bluepill.c $(FREERTOS_LIB_DIR)
+$(FREERTOS_LIB_DIR)/heap_useNewlib_bluepill.o: $(FREERTOS_HEAP_DIR)/heap_useNewlib_bluepill.c
 	@echo "CC $<"
 	@$(CC) $(TGT_CFLAGS) -o $@ -c $<
 
-$(FREERTOS_LIB_DIR)/port.o: $(FREERTOS_DIR)/portable/GCC/ARM_CM3/port.c $(FREERTOS_LIB_DIR)
+$(FREERTOS_LIB_DIR)/port.o: $(FREERTOS_DIR)/portable/GCC/ARM_CM3/port.c
 	@echo "CC $<"
 	@$(CC) $(TGT_CFLAGS) -o $@ -c $<
 
 # Bosch BME280 driver
-libbme280: $(BME280_LIB_DIR)/libbme280.a
+libbme280: $(BME280_LIB_DIR) $(BME280_LIB_DIR)/libbme280.a
 
 $(BME280_LIB_DIR)/libbme280.a : $(BME280_LIB_DIR)/bme280.o
 	$(AR) rcs $@ $<
 
-$(BME280_LIB_DIR)/bme280.o: $(BME280_DIR)/bme280.c $(BME280_LIB_DIR)
+$(BME280_LIB_DIR)/bme280.o: $(BME280_DIR)/bme280.c
 	@echo "CC $<"
 	@$(CC) $(TGT_CFLAGS) -Wno-missing-field-initializers -o $@ -c $< # Bosch driver gives missing-field-initializers warning
 
