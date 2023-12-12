@@ -13,7 +13,7 @@
 #include "Temperature.h"
 #include "utils.h"
 
-static void setup_network(const Network& network)
+static void setup_network(Network& network)
 {
     while (network.init() != utils::ErrorCode::OK) {
         ;
@@ -42,7 +42,7 @@ void led_task([[maybe_unused]] void* a)
 
 void temperature_task(void* a)
 {
-    constexpr auto measurement_delay = pdMS_TO_TICKS(2000);
+    constexpr auto measurement_delay = pdMS_TO_TICKS(10'000);
 
     // We should always have the notification already waiting as the setup task has higher priority
     if (pdTRUE != xTaskNotifyWait(0, 0, nullptr, 0)) {
@@ -73,10 +73,15 @@ void network_task(void* a)
 
     const auto args = static_cast<NetworkTaskArgs*>(a);
 
+    Socket sock(args->network);
+    while (sock.connect(SocketType::UDP, SERVER_IP, SERVER_PORT) != utils::ErrorCode::OK) {
+        ;
+    }
+
     while (true) {
         double reading = 0;
         if (xQueueReceive(args->measurement_queue, &reading, portMAX_DELAY) != errQUEUE_EMPTY) {
-            args->network->publish_measurement(reading);
+            std::ignore = sock.send({ reinterpret_cast<uint8_t*>(&reading), sizeof(reading) });
         }
     }
 }

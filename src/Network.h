@@ -35,17 +35,20 @@
 #define SERVER_PORT "666"
 #endif // !SERVER_PORT
 
+enum class SocketType { TCP, UDP };
+
 class Network {
 public:
     virtual void reset() const = 0;
     virtual void hard_reset() const = 0;
-    virtual utils::ErrorCode init() const = 0;
-    [[nodiscard]] virtual utils::ErrorCode connect_to_ap() const = 0;
-    [[nodiscard]] virtual utils::ErrorCode connect_to_server() const = 0;
-    virtual void disconnect_from_server() const = 0;
-    //[[nodiscard]] virtual utils::ErrorCode publish_measurement(double temperature) const = 0;
-    virtual void publish_measurement(double temperature) const = 0;
-    virtual void test_connection() const = 0;
+    virtual utils::ErrorCode init() = 0;
+    [[nodiscard]] virtual bool get_ap_connected() = 0;
+    [[nodiscard]] virtual utils::ErrorCode connect_to_ap() = 0;
+    [[nodiscard]] virtual std::optional<unsigned int> connect_socket(
+        SocketType sock_type, std::string_view addr, std::string_view port)
+        = 0;
+    [[nodiscard]] virtual utils::ErrorCode send_socket(unsigned int id, std::span<uint8_t> data) const = 0;
+    [[nodiscard]] virtual utils::ErrorCode close_socket(unsigned int id) = 0;
 };
 
 class ESP8266Network final : public Network {
@@ -61,7 +64,7 @@ public:
         utils::logger.info("Hard resetting ESP8266...\n");
 
         reset_pin->port->clear_pins(reset_pin->pin_nro);
-        bluepill::busy_wait_ms(1000);
+        bluepill::busy_wait_ms(5000);
 
         if constexpr (debug) {
             // Enable usart interrupts
@@ -125,23 +128,24 @@ public:
         utils::logger.info("ESP8266 reset!\n");
     }
 
-    utils::ErrorCode init() const override
+    utils::ErrorCode init() override
     {
-        hard_reset();
-
-        while (connect_to_ap() != utils::ErrorCode::OK) {
-            hard_reset();
+        auto res = utils::ErrorCode::NETWORK_RESPONSE_NOT_OK_ERROR;
+        reset_pin->port->set_pins(reset_pin->pin_nro);
+        while (res != utils::ErrorCode::OK) {
+            reset();
+            res = test_msg();
         }
-
-        return connect_to_server();
+        return connect_to_ap();
     }
 
-    [[nodiscard]] utils::ErrorCode connect_to_ap() const override
+    [[nodiscard]] utils::ErrorCode connect_to_ap() override
     {
         utils::logger.info("Connecting to AP...\n");
-        auto res = send_command("AT+CWJAP_CUR=\"" WIFI_AP "\",\"" WIFI_PASS "\"", "OK", buf);
+        auto res = send_command("AT+CWJAP_CUR=\"" WIFI_AP "\",\"" WIFI_PASS "\"", "OK", buf, 10'000);
         if (res == utils::ErrorCode::OK) {
             utils::logger.info("Connencted to AP: " WIFI_AP "!\n");
+            ap_connected = true;
         } else {
             utils::logger.error("Failed to connect to AP: " WIFI_AP "!\n");
         }
@@ -149,61 +153,108 @@ public:
         return res;
     }
 
-    [[nodiscard]] utils::ErrorCode connect_to_server() const override
+    [[nodiscard]] bool get_ap_connected() override { return ap_connected; }
+
+    [[nodiscard]] utils::ErrorCode test_msg() const
     {
-        // Open the UDP connetion
-        auto res = send_command("AT+CIPSTART=\"UDP\",\"" SERVER_IP "\"," SERVER_PORT, "OK", buf);
-        if (res == utils::ErrorCode::OK) {
-            send_command_dont_care("AT+CIPMODE=1");
-            bluepill::busy_wait_ms(break_time);
-            send_command_dont_care("AT+CIPSEND");
+        utils::logger.info("Testing serial connection to ESP8266...\n");
+        return send_command("AT", "OK", buf);
+    }
+
+    [[nodiscard]] std::optional<unsigned int> connect_socket(
+        SocketType type, std::string_view addr, std::string_view port) override
+    {
+        std::optional<unsigned int> res = std::nullopt;
+        if (ap_connected && (connections < max_connections)) {
+            send_raw("AT+CIPSTART=");
+            if (type == SocketType::UDP) {
+                send_raw("\"UDP\"");
+            } else { // TCP
+                send_raw("\"TCP\"");
+            }
+            send_raw(",\"");
+            send_raw(addr);
+            send_raw("\",");
+            send_raw(port);
+            if (send_command("", "OK", buf, 5000) == utils::ErrorCode::OK) {
+                connections++;
+                unsigned int id = 0; // Only 1 connection at a time supported for now
+                socket_connections[id] = true;
+                res = id;
+            }
         }
+
+        // Return socket id
         return res;
     }
 
-    void disconnect_from_server() const override
+    [[nodiscard]] utils::ErrorCode send_socket(unsigned int id, std::span<uint8_t> data) const override
     {
-        send_command_dont_care("+++");
-        bluepill::busy_wait_ms(break_time);
-        send_command_dont_care("AT+CIPCLOSE");
+        if (ap_connected && socket_connected(id)) {
+            char size_str[6];
+            sprintf(size_str, "%d", data.size());
+            send_raw("AT+CIPSEND=");
+            send_command_dont_care(size_str);
+            bluepill::busy_wait_ms(5);
+            send_raw(data);
+            send_command_dont_care("");
+            return utils::ErrorCode::OK;
+        }
+
+        return utils::ErrorCode::NETWORK_RESPONSE_NOT_OK_ERROR;
     }
 
-    void publish_measurement(double temperature) const override
+    [[nodiscard]] utils::ErrorCode close_socket(unsigned int id) override
     {
-        send_data_dont_care({ reinterpret_cast<uint8_t*>(&temperature), sizeof(temperature) });
-        utils::logger.info("Sent temperature measurement\n");
+        if (ap_connected && socket_connected(id)) {
+            send_command_dont_care("AT+CIPCLOSE");
+            connections--;
+            socket_connections[id] = false;
+            return utils::ErrorCode::OK;
+        }
+        return utils::ErrorCode::NETWORK_RESPONSE_NOT_OK_ERROR;
     }
-
-    void test_connection() const override { send_command_dont_care("AT"); }
 
 private:
     const USARTWithDMA* usart;
     const GPIOPin* reset_pin; // Reset when transitions from low -> high
 
-    static constexpr bool debug = false;
+    static constexpr bool debug = true;
 
     constexpr static unsigned int response_time = 10'000;
     constexpr static unsigned int reset_time = 10'000; // This thing is sometimes really slow to reset...
     constexpr static unsigned int break_time = 5;
 
-    mutable std::array<volatile char, 1024> buf {};
+    bool ap_connected = false;
 
-    void send_data_dont_care(std::span<uint8_t> data) const
-    {
-        for (auto& d : data) {
-            usart->send_blocking(d);
-        }
-        usart->send_blocking("\r\n");
-    }
+    static constexpr unsigned int max_connections = 1;
+    unsigned int connections = 0;
+    std::array<bool, max_connections> socket_connections = { false };
+
+    mutable std::array<volatile char, 2048> buf {};
+
+    bool socket_connected(unsigned int id) const { return (id < max_connections) && socket_connections[id]; }
+
+    void send_raw(std::span<uint8_t> bytes) const { usart->send_blocking(bytes); }
+
+    void send_raw(uint8_t byte) const { usart->send_blocking(byte); }
+
+    void send_raw(std::string_view msg) const { usart->send_blocking(msg); }
 
     void send_command_dont_care(std::string_view cmd) const
     {
-        usart->send_blocking(cmd);
-        usart->send_blocking("\r\n");
+        send_raw(cmd);
+        send_raw("\r\n");
     }
 
-    [[nodiscard]] utils::ErrorCode send_command(
-        std::string_view cmd, std::string_view ok_response, std::span<volatile char> response_buf) const
+    void send_data_dont_care(std::span<uint8_t> data) const
+    {
+        send_raw(data);
+        send_raw("\r\n");
+    }
+
+    [[nodiscard]] utils::ErrorCode send_command(std::string_view cmd, std::string_view ok_response,
+        std::span<volatile char> response_buf, unsigned int response_time_ms = 10'000) const
     {
         using namespace std::literals; // std::string_view literals
 
@@ -215,7 +266,7 @@ private:
         // Send the command
         send_command_dont_care(cmd);
         // Wait a bit for the response
-        bluepill::busy_wait_ms(response_time);
+        bluepill::busy_wait_ms(response_time_ms);
 
         // Disable DMA
         usart->disable_rx_dma();
@@ -253,4 +304,47 @@ private:
 
         return res;
     }
+};
+
+class Socket {
+public:
+    Socket(Network* network)
+        : network(network)
+        , id(std::nullopt)
+    {
+    }
+
+    [[nodiscard]] utils::ErrorCode connect(SocketType sock_type, std::string_view addr, std::string_view port)
+    {
+        // Connect this socket, network returns the assigned ID if succesfull
+        id = network->connect_socket(sock_type, addr, port);
+
+        auto res = utils::ErrorCode::NETWORK_RESPONSE_NOT_OK_ERROR;
+        if (id) {
+            res = utils::ErrorCode::OK;
+        }
+        return res;
+    }
+
+    [[nodiscard]] utils::ErrorCode close() const
+    {
+        auto res = utils::ErrorCode::NETWORK_RESPONSE_NOT_OK_ERROR;
+        if (id) {
+            res = network->close_socket(id.value());
+        }
+        return res;
+    }
+
+    [[nodiscard]] utils::ErrorCode send(std::span<uint8_t> data) const
+    {
+        auto res = utils::ErrorCode::NETWORK_RESPONSE_NOT_OK_ERROR;
+        if (id) {
+            res = network->send_socket(id.value(), data);
+        }
+        return res;
+    }
+
+private:
+    Network* network;
+    std::optional<int> id;
 };

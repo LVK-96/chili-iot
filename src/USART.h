@@ -53,6 +53,8 @@ public:
         USARTFlowControl flowcontrol);
     void disable() const override;
     void enable() const override;
+    void send_blocking(uint8_t byte) const;
+    void send_blocking(std::span<uint8_t> bytes) const;
     void send_blocking(char c) const;
     void send_blocking(std::string_view str) const;
     [[nodiscard]] uint16_t recieve_blocking() const;

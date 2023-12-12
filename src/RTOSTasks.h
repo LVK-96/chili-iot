@@ -23,7 +23,7 @@ void temperature_task(void* a);
 
 struct NetworkTaskArgs {
     QueueHandle_t measurement_queue;
-    const Network* network;
+    Network* network;
 };
 void network_task(void* a);
 
@@ -32,6 +32,6 @@ struct SetupTaskArgs {
     xTaskHandle temperature_task;
     xTaskHandle network_task;
     const TemperatureSensor* temperature;
-    const Network* network;
+    Network* network;
 };
 void setup_task(void* a);
