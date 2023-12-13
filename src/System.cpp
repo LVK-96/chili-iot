@@ -121,7 +121,6 @@ static void interrupt_setup()
 {
     nvic_enable_irq(NVIC_DMA1_CHANNEL6_IRQ); // DMA1 Channel 6, USART2 RX uses this channel
     nvic_enable_irq(NVIC_USART2_IRQ); // USART2 interrupts
-    // systick_interrupt_enable();
     utils::logger.info("Interrupts setup!\n");
 }
 
@@ -131,8 +130,6 @@ void setup()
     peripheral_setup();
     interrupt_setup();
     systick_setup();
-    peripherals::gpio_c.setup_pins(LED_PIN_NRO, GPIOMode::OUTPUT_2_MHZ, GPIOFunction::OUTPUT_PUSHPULL); // C13 LED
-    peripherals::gpio_c.clk_enable();
 }
 
 static uint32_t systick_delta(uint32_t start, uint32_t end)
