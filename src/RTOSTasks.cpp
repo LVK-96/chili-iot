@@ -45,7 +45,7 @@ void temperature_task(void* a)
     constexpr auto measurement_delay = pdMS_TO_TICKS(10'000);
 
     // We should always have the notification already waiting as the setup task has higher priority
-    if (pdTRUE != xTaskNotifyWait(0, 0, nullptr, 0)) {
+    if (pdTRUE != xTaskNotifyWait(0, 0, nullptr, portMAX_DELAY)) {
         utils::logger.error("Temperature task started before setup is done!\n");
         vTaskSuspendAll();
     }
@@ -66,7 +66,7 @@ void temperature_task(void* a)
 void network_task(void* a)
 {
     // We should always have the notification already waiting as the setup task has higher priority
-    if (pdTRUE != xTaskNotifyWait(0, 0, nullptr, 0)) {
+    if (pdTRUE != xTaskNotifyWait(0, 0, nullptr, portMAX_DELAY)) {
         utils::logger.error("Network task started before setup is done!\n");
         vTaskSuspendAll();
     }

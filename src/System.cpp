@@ -155,4 +155,12 @@ void busy_wait(uint32_t ticks)
 
 void busy_wait_ms(unsigned int ms) { busy_wait(ms * portTICK_RATE_MS); }
 
+void async_wait(uint32_t ticks)
+{
+    vTaskDelay(ticks);
+}
+
+void async_wait_ms(unsigned int ms) { async_wait(ms * portTICK_RATE_MS); }
+
+
 }

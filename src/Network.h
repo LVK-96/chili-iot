@@ -64,7 +64,7 @@ public:
         utils::logger.info("Hard resetting ESP8266...\n");
 
         reset_pin->port->clear_pins(reset_pin->pin_nro);
-        bluepill::busy_wait_ms(5000);
+        bluepill::async_wait_ms(5000);
 
         if constexpr (debug) {
             // Enable usart interrupts
@@ -73,7 +73,7 @@ public:
             usart->enable_rx_dma(reinterpret_cast<uint32_t>(buf.data()), buf.size());
 
             reset_pin->port->set_pins(reset_pin->pin_nro);
-            bluepill::busy_wait_ms(reset_time); // Wait a bit so the ESP8266 has time to reset
+            bluepill::async_wait_ms(reset_time); // Wait a bit so the ESP8266 has time to reset
 
             // Disable DMA
             usart->disable_rx_dma();
@@ -89,7 +89,7 @@ public:
             utils::logger.log("\n");
         } else {
             reset_pin->port->set_pins(reset_pin->pin_nro);
-            bluepill::busy_wait_ms(reset_time); // Wait a bit so the ESP8266 has time to reset
+            bluepill::async_wait_ms(reset_time); // Wait a bit so the ESP8266 has time to reset
         }
 
         utils::logger.info("ESP8266 reset!\n");
@@ -106,7 +106,7 @@ public:
             usart->enable_rx_dma(reinterpret_cast<uint32_t>(buf.data()), buf.size());
 
             send_command_dont_care("AT+RST");
-            bluepill::busy_wait_ms(reset_time); // Wait a bit so the ESP8266 has time to reset
+            bluepill::async_wait_ms(reset_time); // Wait a bit so the ESP8266 has time to reset
 
             // Disable DMA
             usart->disable_rx_dma();
@@ -122,7 +122,7 @@ public:
             utils::logger.log("\n");
         } else {
             send_command_dont_care("AT+RST");
-            bluepill::busy_wait_ms(reset_time); // Wait a bit so the ESP8266 has time to reset
+            bluepill::async_wait_ms(reset_time); // Wait a bit so the ESP8266 has time to reset
         }
 
         utils::logger.info("ESP8266 reset!\n");
@@ -195,7 +195,7 @@ public:
             sprintf(size_str, "%d", data.size());
             send_raw("AT+CIPSEND=");
             send_command_dont_care(size_str);
-            bluepill::busy_wait_ms(5);
+            bluepill::async_wait_ms(5);
             send_raw(data);
             send_command_dont_care("");
             return utils::ErrorCode::OK;
@@ -266,7 +266,7 @@ private:
         // Send the command
         send_command_dont_care(cmd);
         // Wait a bit for the response
-        bluepill::busy_wait_ms(response_time_ms);
+        bluepill::async_wait_ms(response_time_ms);
 
         // Disable DMA
         usart->disable_rx_dma();
