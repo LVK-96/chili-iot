@@ -13,6 +13,14 @@
 #include "Temperature.h"
 #include "utils.h"
 
+#ifndef SERVER_IP
+#define SERVER_IP "127.0.0.1"
+#endif
+
+#ifndef SERVER_PORT
+#define SERVER_PORT 12345
+#endif
+
 static void setup_network(Network& network)
 {
     while (network.init() != utils::ErrorCode::OK) {

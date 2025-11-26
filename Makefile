@@ -1,3 +1,4 @@
+# Define WIFI_AP, WIFI_PASS, SERVER_IP, SERVER_PORT here
 -include .secrets
 
 # Paths and filenames
@@ -50,7 +51,19 @@ TGT_CXXFLAGS += $(DEFINES)
 TGT_CXXFLAGS += -std=c++20
 TGT_CXXFLAGS += $(I_FLAGS)
 TGT_CXXFLAGS += -MD
-TGT_CXXFLAGS += -D WIFI_AP=$(WIFI_AP) -D WIFI_PASS=$(WIFI_PASS) -D SERVER_IP=$(SERVER_IP) -D SERVER_PORT=$(SERVER_PORT)
+# Conditionally add defines only if variables are set (from .secrets file)
+ifdef WIFI_AP
+TGT_CXXFLAGS += -D WIFI_AP=$(WIFI_AP)
+endif
+ifdef WIFI_PASS
+TGT_CXXFLAGS += -D WIFI_PASS=$(WIFI_PASS)
+endif
+ifdef SERVER_IP
+TGT_CXXFLAGS += -D SERVER_IP=$(SERVER_IP)
+endif
+ifdef SERVER_PORT
+TGT_CXXFLAGS += -D SERVER_PORT=$(SERVER_PORT)
+endif
 
 # C compiler flags for libopencm3
 TGT_CFLAGS := $(OPT_FLAGS)
