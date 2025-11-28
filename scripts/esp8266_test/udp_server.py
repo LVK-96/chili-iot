@@ -36,6 +36,7 @@ def server(stop_event: Optional[threading.Event] = None) -> None:
                 print(f"Server: Received message: {msg}")
         # Check for the stop event -> when it is set we should close the server
         if (stop_event is not None) and stop_event.is_set():
+            print("Server: Stopping...")
             sock.close()
             return
 

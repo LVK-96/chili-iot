@@ -38,7 +38,7 @@ class ESP8266:
         return (time.time() - start) > self.response_timeout
 
     def send_cmd(self, cmd: str) -> bool:
-        print(f"Sending command: {cmd}...")
+        print(f"Sending command: {cmd}")
         self.serial.flushInput()
         self.serial.write(f"{cmd}\r\n".encode("utf-8"))
 
