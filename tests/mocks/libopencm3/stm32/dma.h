@@ -58,8 +58,8 @@ void dma_disable_half_transfer_interrupt(uint32_t dma, uint8_t channel);
 void dma_enable_channel(uint32_t dma, uint8_t channel);
 void dma_disable_channel(uint32_t dma, uint8_t channel);
 
-extern volatile uint32_t mock_dma_cndtr;
-extern volatile uint32_t mock_dma_ccr;
+extern uint32_t mock_dma_cndtr;
+extern uint32_t mock_dma_ccr;
 #define DMA_CNDTR(dma, channel) ((void)(dma), (void)(channel), mock_dma_cndtr)
 #define DMA_CCR(dma, channel) ((void)(dma), (void)(channel), mock_dma_ccr)
 

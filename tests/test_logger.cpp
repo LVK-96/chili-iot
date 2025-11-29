@@ -1,4 +1,27 @@
 #include "Logger.h"
+#include "USART.h"
+#include "doctest.h"
+#include "mock_libopencm3.h"
+
+#include <string>
+
+TEST_CASE("USARTLogger sends expected bytes")
+{
+    mock_libopencm3_reset();
+
+    USART usart(BluePillUSART::_2, RCC_USART2, RST_USART2);
+    USARTLogger logger(Logger::LogLevel::INFO, &usart);
+
+    logger.info("hi");
+
+    // Expect "INFO: hi" -> I N F O : <space> h i
+    const std::string expected = "INFO: hi";
+    REQUIRE(static_cast<int>(mock_usart_send_bytes.size()) == static_cast<int>(expected.size()));
+    for (size_t i = 0; i < expected.size(); ++i) {
+        CHECK(mock_usart_send_bytes[i] == static_cast<uint16_t>(expected[i]));
+    }
+}
+#include "Logger.h"
 #include "doctest.h"
 #include <vector>
 

@@ -6,6 +6,13 @@
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/usart.h>
 
+#include "mock_libopencm3.h"
+#include <algorithm>
+#include <unordered_map>
+#include <vector>
+#include <cstdint>
+#include <bme280_defs.h>
+
 // Mock implementations
 void gpio_set_mode(uint32_t gpioport, uint8_t mode, uint8_t cnf, uint16_t gpios)
 {
@@ -104,11 +111,109 @@ void i2c_set_own_7bit_slave_address(uint32_t i2c, uint8_t slave)
 void i2c_transfer7(uint32_t i2c, uint8_t addr, const uint8_t* w, size_t wlen, uint8_t* r, size_t rlen)
 {
     (void)i2c;
-    (void)addr;
-    (void)w;
-    (void)wlen;
-    (void)r;
-    (void)rlen;
+    MockI2CCall call;
+    call.addr = addr;
+    call.wlen = wlen;
+    call.rlen = rlen;
+
+    const bool has_write = w && wlen;
+    if (has_write) {
+        call.wdata.assign(w, w + wlen);
+    }
+    mock_i2c_calls.push_back(std::move(call));
+
+    // Minimal BME280 emulation state per I2C addr
+    struct BMEState {
+        uint8_t last_reg = 0;
+        bool resetting = false;
+        int reset_ticks = 0; // ticks remaining where STATUS.IM_UPDATE remains set
+        uint8_t ctrl_meas = 0;
+    };
+
+    static std::unordered_map<uint8_t, BMEState> bme_states;
+
+    // If this is a write, store the last register or handle register writes
+    if (has_write) {
+        auto &state = bme_states[addr];
+        // If writing more than one byte, first byte is reg addr
+        uint8_t reg = w[0];
+        state.last_reg = reg;
+        if (wlen >= 2) {
+            // If writing reset command
+            if (reg == BME280_REG_RESET && w[1] == BME280_SOFT_RESET_COMMAND) {
+                state.resetting = true;
+                state.reset_ticks = 2; // allow a couple of status polls
+            }
+            // If writing ctrl_meas or ctrl hum, record for completeness
+            if (reg == BME280_REG_CTRL_HUM || reg == BME280_REG_CTRL_MEAS) {
+                state.ctrl_meas = w[1];
+            }
+        }
+    }
+
+    const bool has_read = r && rlen;
+    if (has_read) {
+        auto &state = bme_states[addr];
+
+        // If last register is known, return appropriate data
+        switch (state.last_reg) {
+        case BME280_REG_CHIP_ID:
+            if (rlen >= 1) {
+                r[0] = BME280_CHIP_ID;
+                if (rlen > 1) std::fill_n(r + 1, rlen - 1, 0);
+            }
+            break;
+        case BME280_REG_STATUS:
+            if (rlen >= 1) {
+                if (state.resetting && state.reset_ticks > 0) {
+                    r[0] = BME280_STATUS_IM_UPDATE;
+                    state.reset_ticks--;
+                    if (state.reset_ticks == 0) state.resetting = false;
+                } else {
+                    r[0] = 0;
+                }
+            }
+            break;
+        case BME280_REG_TEMP_PRESS_CALIB_DATA: {
+            // Provide calibration data (26 bytes). First six bytes set
+            // so dig_t1=27504, dig_t2=26435, dig_t3=-1000 which
+            // together with the raw ADC below yield ~21.0°C.
+            const uint8_t calib[26] = {
+                0x70, 0x6B, 0x43, 0x67, 0x18, 0xFC, 0x22, 0x11,
+                0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80,
+                0x90, 0xA0, 0xB0, 0xC0, 0xD0, 0xE0, 0xF0, 0x01,
+                0x02, 0x03
+            };
+            size_t copy = (rlen < sizeof(calib)) ? rlen : sizeof(calib);
+            std::copy(calib, calib + copy, r);
+            if (rlen > copy) std::fill_n(r + copy, rlen - copy, 0);
+        } break;
+        case BME280_REG_HUMIDITY_CALIB_DATA: {
+            // Provide plausible humidity calibration (7 bytes)
+            const uint8_t hcalib[7] = { 0x01, 0x80, 0x02, 0x90, 0x03, 0xA0, 0x04 };
+            size_t copy = (rlen < sizeof(hcalib)) ? rlen : sizeof(hcalib);
+            std::copy(hcalib, hcalib + copy, r);
+            if (rlen > copy) std::fill_n(r + copy, rlen - copy, 0);
+        } break;
+        case BME280_REG_DATA: {
+            // Return raw pressure(3), temp(3), hum(2) bytes (8 total).
+            // Temperature raw chosen as 0x7B,0xBF,0x00 -> raw ADC 506864
+            // which with the calibration above produces ~21.0°C.
+            const uint8_t data[8] = {
+                0x6A, 0xBC, 0x00, // pressure msb, lsb, xlsb (unchanged)
+                0x7B, 0xBF, 0x00, // temp msb, lsb, xlsb -> raw temp ~506864
+                0x40, 0x00        // humidity msb, lsb
+            };
+            size_t copy = (rlen < sizeof(data)) ? rlen : sizeof(data);
+            std::copy(data, data + copy, r);
+            if (rlen > copy) std::fill_n(r + copy, rlen - copy, 0);
+        } break;
+        default:
+            // Unrecognized register: return zeros
+            std::fill_n(r, rlen, 0);
+            break;
+        }
+    }
 }
 
 uint32_t rcc_apb1_frequency = 36000000;
@@ -154,10 +259,12 @@ void usart_send_blocking(uint32_t usart, uint16_t data)
 {
     (void)usart;
     (void)data;
+    mock_usart_send_bytes.push_back(static_cast<uint16_t>(data & 0xff));
 }
 uint16_t usart_recv_blocking(uint32_t usart)
 {
     (void)usart;
+    mock_usart_recv_blocking_count++;
     return 0;
 }
 void usart_enable_rx_interrupt(uint32_t usart) { (void)usart; }
@@ -192,7 +299,7 @@ volatile uint32_t mock_usart_sr;
 volatile uint32_t mock_usart_cr3;
 
 // DMA Mocks
-volatile uint32_t mock_dma_cndtr;
+uint32_t mock_dma_cndtr;
 void dma_channel_reset(uint32_t dma, uint8_t channel)
 {
     (void)dma;
@@ -201,20 +308,17 @@ void dma_channel_reset(uint32_t dma, uint8_t channel)
 void dma_set_peripheral_address(uint32_t dma, uint8_t channel, uint32_t address)
 {
     (void)dma;
-    (void)channel;
-    (void)address;
+    mock_dma_periph_addr_calls.push_back({ channel, address });
 }
 void dma_set_memory_address(uint32_t dma, uint8_t channel, uint32_t address)
 {
     (void)dma;
-    (void)channel;
-    (void)address;
+    mock_dma_mem_addr_calls.push_back({ channel, address });
 }
 void dma_set_number_of_data(uint32_t dma, uint8_t channel, uint16_t number)
 {
     (void)dma;
-    (void)channel;
-    (void)number;
+    mock_dma_number_calls.push_back({ channel, number });
 }
 void dma_set_read_from_peripheral(uint32_t dma, uint8_t channel)
 {
@@ -308,14 +412,16 @@ void dma_enable_channel(uint32_t dma, uint8_t channel)
 {
     (void)dma;
     (void)channel;
+    mock_dma_enable_channel_count++;
 }
 void dma_disable_channel(uint32_t dma, uint8_t channel)
 {
     (void)dma;
     (void)channel;
+    mock_dma_disable_channel_count++;
 }
 
-volatile uint32_t mock_dma_ccr;
+uint32_t mock_dma_ccr;
 bool dma_get_interrupt_flag(uint32_t dma, uint8_t channel, uint32_t flag)
 {
     (void)dma;
@@ -328,6 +434,29 @@ void dma_clear_interrupt_flags(uint32_t dma, uint8_t channel, uint32_t flags)
     (void)dma;
     (void)channel;
     (void)flags;
+}
+
+// Detailed log containers
+std::vector<MockI2CCall> mock_i2c_calls;
+std::vector<uint16_t> mock_usart_send_bytes;
+int mock_usart_recv_blocking_count = 0;
+
+std::vector<MockDMANumberCall> mock_dma_number_calls;
+std::vector<MockDMAAddressCall> mock_dma_periph_addr_calls;
+std::vector<MockDMAAddressCall> mock_dma_mem_addr_calls;
+int mock_dma_enable_channel_count = 0;
+int mock_dma_disable_channel_count = 0;
+
+void mock_libopencm3_reset()
+{
+    mock_i2c_calls.clear();
+    mock_usart_send_bytes.clear();
+    mock_usart_recv_blocking_count = 0;
+    mock_dma_number_calls.clear();
+    mock_dma_periph_addr_calls.clear();
+    mock_dma_mem_addr_calls.clear();
+    mock_dma_enable_channel_count = 0;
+    mock_dma_disable_channel_count = 0;
 }
 
 // NVIC Mocks
