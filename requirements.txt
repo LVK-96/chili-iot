@@ -1,5 +1,5 @@
 bashlex==0.18
 click==8.1.7
-compiledb==0.10.1
+compiledb==0.10.7
 pyserial==3.5
 shutilwhich==1.1.0

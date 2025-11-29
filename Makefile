@@ -202,6 +202,7 @@ clang-tidy:
 clean:
 	rm -rf $(BUILD_DIR)
 	rm -rf $(LIB_DIR)
+	rm -rf compile_commands.json
 
 clean_lib:
 	rm -rf $(LIB_DIR)
@@ -266,3 +267,6 @@ $(TEST_BINARY): $(TEST_OBJS) $(TEST_C_OBJS)
 	g++ $(TEST_OBJS) $(TEST_C_OBJS) -o $@
 
 -include $(TEST_DEPENDS)
+
+compile_commands.json:
+	./make_compile_commands.sh	compiledb make
