@@ -1,6 +1,5 @@
 #include "Logger.h"
 #include "doctest.h"
-#include <sstream>
 #include <vector>
 
 // Mock logger that captures log messages
