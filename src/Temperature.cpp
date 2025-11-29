@@ -1,9 +1,6 @@
 #include <span>
 
 #include <bme280.h>
-#include <libopencm3/stm32/gpio.h>
-#include <libopencm3/stm32/i2c.h>
-#include <libopencm3/stm32/rcc.h>
 
 #include "Logger.h"
 #include "System.h"
@@ -25,7 +22,7 @@ utils::ErrorCode BME280TemperatureSensor::init() const
 std::optional<double> BME280TemperatureSensor::read() const
 {
     utils::logger.info("Reading BME280...\n");
-    struct bme280_data read_data { };
+    struct bme280_data read_data {};
     const int8_t res = bme280_get_sensor_data(BME280_TEMP, &read_data, &bme280);
     if (res != BME280_OK) {
         utils::logger.error("Failed to read temperature!\n");

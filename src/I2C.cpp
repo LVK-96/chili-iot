@@ -1,7 +1,6 @@
 #include <libopencm3/stm32/i2c.h>
 
 #include "I2C.h"
-#include "Logger.h"
 
 void I2C::setup() const
 {

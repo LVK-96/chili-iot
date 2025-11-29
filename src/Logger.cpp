@@ -1,13 +1,7 @@
 #include <cstdint>
 #include <cstdio>
 
-#include <libopencm3/stm32/gpio.h>
-#include <libopencm3/stm32/rcc.h>
-#include <libopencm3/stm32/usart.h>
-
-#include "GPIO.h"
 #include "Logger.h"
-#include "System.h"
 #include "USART.h"
 
 void Logger::set_verbosity(LogLevel new_verbosity) { verbosity = new_verbosity; }
