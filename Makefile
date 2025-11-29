@@ -228,3 +228,41 @@ default: bin
 .DEFAULT_GOAL := default
 
 -include $(DEPENDS)
+
+# Tests
+TEST_DIR := tests
+TEST_BUILD_DIR := build/tests
+TEST_BINARY := $(TEST_BUILD_DIR)/runner
+TEST_SRCS := $(filter-out src/main.cpp, $(SRC_FILES)) \
+             $(wildcard $(TEST_DIR)/*.cpp) \
+             $(wildcard $(TEST_DIR)/mocks/*.cpp)
+TEST_C_SRCS := submodules/BME280_driver/bme280.c
+
+TEST_OBJS := $(patsubst %.cpp, $(TEST_BUILD_DIR)/%.o, $(TEST_SRCS))
+TEST_C_OBJS := $(patsubst %.c, $(TEST_BUILD_DIR)/%.o, $(TEST_C_SRCS))
+
+TEST_DEPENDS := $(patsubst %.cpp, $(TEST_BUILD_DIR)/%.d, $(TEST_SRCS)) \
+                $(patsubst %.c, $(TEST_BUILD_DIR)/%.d, $(TEST_C_SRCS))
+
+TEST_CXXFLAGS := -std=c++20 -Wall -Wextra -g \
+                 -I$(TEST_DIR)/mocks \
+                 -Isubmodules/doctest/doctest \
+                 -Isrc \
+                 -I$(BME280_DIR) \
+                 -DSTM32F1
+
+$(TEST_BUILD_DIR)/%.o: %.cpp
+	@mkdir -p $(dir $@)
+	g++ $(TEST_CXXFLAGS) -MMD -MP -c $< -o $@
+
+$(TEST_BUILD_DIR)/%.o: %.c
+	@mkdir -p $(dir $@)
+	gcc -I$(BME280_DIR) -MMD -MP -c $< -o $@
+
+test: $(TEST_BINARY)
+	./$(TEST_BINARY)
+
+$(TEST_BINARY): $(TEST_OBJS) $(TEST_C_OBJS)
+	g++ $(TEST_OBJS) $(TEST_C_OBJS) -o $@
+
+-include $(TEST_DEPENDS)
