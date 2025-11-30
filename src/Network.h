@@ -4,8 +4,9 @@
 #include <array>
 #include <cstdint>
 #include <cstdio>
+#include <iostream>
 #include <ranges>
-#include <string_view>
+#include <string>
 
 #include <libopencm3/stm32/dma.h>
 #include <libopencm3/stm32/usart.h>
@@ -69,7 +70,7 @@ public:
             // Enable usart interrupts
             usart->error_interrupt(true);
             // Enable usart DMA
-            usart->enable_rx_dma((uint32_t)(uintptr_t)buf.data(), buf.size());
+            usart->enable_rx_dma(reinterpret_cast<uint32_t>(buf.data()), buf.size());
 
             reset_pin->port->set_pins(reset_pin->pin_nro);
             bluepill::async_wait_ms(reset_time); // Wait a bit so the ESP8266 has time to reset
@@ -102,7 +103,7 @@ public:
             // Enable usart interrupts
             usart->error_interrupt(true);
             // Enable usart DMA
-            usart->enable_rx_dma((uint32_t)(uintptr_t)buf.data(), buf.size());
+            usart->enable_rx_dma(reinterpret_cast<uint32_t>(buf.data()), buf.size());
 
             send_command_dont_care("AT+RST");
             bluepill::async_wait_ms(reset_time); // Wait a bit so the ESP8266 has time to reset
@@ -191,7 +192,7 @@ public:
     {
         if (ap_connected && socket_connected(id)) {
             char size_str[6];
-            sprintf(size_str, "%zu", data.size());
+            sprintf(size_str, "%d", data.size());
             send_raw("AT+CIPSEND=");
             send_command_dont_care(size_str);
             bluepill::async_wait_ms(5);
@@ -260,7 +261,7 @@ private:
         // Enable usart interrupts
         usart->error_interrupt(true);
         // Enable usart DMA
-        usart->enable_rx_dma((uint32_t)(uintptr_t)response_buf.data(), response_buf.size());
+        usart->enable_rx_dma(reinterpret_cast<uint32_t>(response_buf.data()), response_buf.size());
 
         // Send the command
         send_command_dont_care(cmd);

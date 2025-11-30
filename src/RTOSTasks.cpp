@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <memory>
 #include <utility>
 
 #include <FreeRTOS.h>
@@ -8,6 +9,7 @@
 #include "BlinkyLED.h"
 #include "Network.h"
 #include "RTOSTasks.h"
+#include "System.h"
 #include "Temperature.h"
 #include "utils.h"
 
@@ -108,9 +110,8 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, char* pcTaskName)
 {
     while (true) {
         utils::logger.error("STACK OVERFLOW!\n");
-        printf("xTask: 0x%lx\n", (unsigned long)(uintptr_t)xTask);
-        printf("%s", pcTaskName);
-
+        printf("xTask: 0x%lx\n", reinterpret_cast<uint32_t>(xTask));
+        printf(pcTaskName);
         printf("\n");
         utils::nop(10'000);
     }
