@@ -273,3 +273,9 @@ $(TEST_BINARY): $(TEST_OBJS) $(TEST_C_OBJS)
 
 compile_commands.json:
 	./make_compile_commands.sh
+	
+.PHONY: udp_server
+udp_server:
+	UDP_SERVER_IP=$(shell echo $(SERVER_IP) | tr -d '"') \
+	UDP_SERVER_PORT=$(shell echo $(SERVER_PORT) | tr -d '"') \
+	python3 scripts/esp8266_test/udp_server.py

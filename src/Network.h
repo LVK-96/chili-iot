@@ -180,8 +180,14 @@ public:
                 socket_connections[id] = true;
                 res = id;
             }
-        }
 
+            if ((send_command("AT+CIPMODE=1", "OK", buf, 5000) != utils::ErrorCode::OK)
+                || (send_command("AT+CIPSEND", "OK", buf, 5000) != utils::ErrorCode::OK)) {
+                utils::logger.error("Failed to set ESP8266 to transparent mode!\n");
+                send_command_dont_care("AT+CIPCLOSE");
+                res = std::nullopt;
+            }
+        }
         // Return socket id
         return res;
     }
@@ -189,13 +195,8 @@ public:
     [[nodiscard]] utils::ErrorCode send_socket(unsigned int id, std::span<uint8_t> data) const override
     {
         if (ap_connected && socket_connected(id)) {
-            char size_str[6];
-            sprintf(size_str, "%zu", data.size());
-            send_raw("AT+CIPSEND=");
-            send_command_dont_care(size_str);
-            bluepill::async_wait_ms(5);
             send_raw(data);
-            send_command_dont_care("");
+            bluepill::async_wait_ms(50);
             return utils::ErrorCode::OK;
         }
 
@@ -255,7 +256,6 @@ private:
         std::span<volatile char> response_buf, unsigned int response_time_ms = 10'000) const
     {
         using namespace std::literals; // std::string_view literals
-
         // Enable usart interrupts
         usart->error_interrupt(true);
         // Enable usart DMA
