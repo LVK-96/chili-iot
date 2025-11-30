@@ -1,8 +1,6 @@
 #pragma once
 
-#include <array>
 #include <atomic>
-#include <cstdint>
 
 struct DMAISRFlags {
     volatile std::atomic_bool dma_complete = false;

@@ -202,7 +202,7 @@ clang-tidy:
 clean:
 	rm -rf $(BUILD_DIR)
 	rm -rf $(LIB_DIR)
-	rm -rf compile_commands.json
+	rm -rf compile_commands*.json
 
 clean_lib:
 	rm -rf $(LIB_DIR)
@@ -234,7 +234,7 @@ default: bin
 TEST_DIR := tests
 TEST_BUILD_DIR := build/tests
 TEST_BINARY := $(TEST_BUILD_DIR)/runner
-TEST_SRCS := $(filter-out src/main.cpp, $(SRC_FILES)) \
+TEST_SRCS := $(filter-out src/main.cpp src/interrupts.cpp, $(SRC_FILES)) \
              $(wildcard $(TEST_DIR)/*.cpp) \
              $(wildcard $(TEST_DIR)/mocks/*.cpp)
 TEST_C_SRCS := submodules/BME280_driver/bme280.c
@@ -262,6 +262,9 @@ $(TEST_BUILD_DIR)/%.o: %.c
 
 test: $(TEST_BINARY)
 	./$(TEST_BINARY)
+	
+clean_test:
+	rm -rf $(TEST_BUILD_DIR)
 
 $(TEST_BINARY): $(TEST_OBJS) $(TEST_C_OBJS)
 	g++ $(TEST_OBJS) $(TEST_C_OBJS) -o $@
@@ -269,4 +272,4 @@ $(TEST_BINARY): $(TEST_OBJS) $(TEST_C_OBJS)
 -include $(TEST_DEPENDS)
 
 compile_commands.json:
-	./make_compile_commands.sh	compiledb make
+	./make_compile_commands.sh

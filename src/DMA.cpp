@@ -1,5 +1,3 @@
-#include <cstdio>
-
 #include "DMA.h"
 
 void DMA::setup_channel(DMADirection direction, BluePillDMAChannel channel, uint32_t peripheral_addr,

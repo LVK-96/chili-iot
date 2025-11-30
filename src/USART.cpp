@@ -1,6 +1,3 @@
-#include <cstdio>
-#include <span>
-
 #include "USART.h"
 #include "interrupts.h"
 
@@ -88,7 +85,7 @@ void USARTWithDMA::enable_rx_dma(uint32_t dest_addr, unsigned int number_of_data
     reset_rx_dma();
     dma_channels.dma->setup_channel(DMADirection::PER2MEM,
         dma_channels.rx_channel.channel, // channel
-        (uint32_t)&USART_DR(usart), // source address
+        (uint32_t)(uintptr_t)&USART_DR(usart), // source address
         BluePillDMAPeripheralWordSize::BYTE, // source word size
         dest_addr,
         BluePillDMAMemWordSize::BYTE, // destination word size
@@ -104,7 +101,7 @@ void USARTWithDMA::enable_tx_dma(uint32_t source_addr, unsigned int number_of_da
     reset_tx_dma();
     dma_channels.dma->setup_channel(DMADirection::MEM2PER,
         dma_channels.tx_channel.channel, // channel
-        (uint32_t)&USART_DR(usart), // destination address
+        (uint32_t)(uintptr_t)&USART_DR(usart), // destination address
         BluePillDMAPeripheralWordSize::BYTE, // destination word size
         source_addr,
         BluePillDMAMemWordSize::BYTE, // source word size

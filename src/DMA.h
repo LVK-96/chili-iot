@@ -1,7 +1,7 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
-#include <span>
 
 #include <libopencm3/stm32/dma.h>
 

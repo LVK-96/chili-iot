@@ -1,8 +1,7 @@
 #pragma once
 
 #include <atomic>
-#include <cstdint>
-#include <optional>
+#include <span>
 #include <string_view>
 
 #include <libopencm3/stm32/rcc.h>

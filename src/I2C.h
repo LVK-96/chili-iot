@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstddef>
 #include <cstdint>
 #include <span>
 
@@ -8,7 +7,7 @@
 #include <libopencm3/stm32/rcc.h>
 
 #include "Peripheral.h"
-#include "System.h"
+#include "utils.h"
 
 class Logger;
 

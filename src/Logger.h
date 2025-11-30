@@ -2,11 +2,8 @@
 
 #include <string_view>
 
-#include <libopencm3/stm32/usart.h>
-
-#include "GPIO.h"
-#include "System.h"
 #include "USART.h"
+#include "utils.h"
 
 class Logger {
 public:
