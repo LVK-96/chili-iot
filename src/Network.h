@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdio>
+#include <functional>
 #include <ranges>
 #include <string_view>
 
@@ -128,11 +129,11 @@ public:
 
     utils::ErrorCode init() override
     {
-        auto res = utils::ErrorCode::NETWORK_RESPONSE_NOT_OK_ERROR;
+        const auto echo_off_or_on
+            = debug ? std::bind(&ESP8266Network::echo_on, this) : std::bind(&ESP8266Network::echo_off, this);
         reset_pin->port->set_pins(reset_pin->pin_nro);
-        while (res != utils::ErrorCode::OK) {
+        while (!(test_msg() == utils::ErrorCode::OK && echo_off_or_on() == utils::ErrorCode::OK)) {
             reset();
-            res = test_msg();
         }
         return connect_to_ap();
     }
@@ -178,6 +179,18 @@ public:
     {
         utils::logger.info("Testing serial connection to ESP8266...\n");
         return send_command("AT", "OK", buf);
+    }
+
+    [[nodiscard]] utils::ErrorCode echo_off() const
+    {
+        utils::logger.info("Turning off AT command echo...\n");
+        return send_command("ATE0", "OK", buf);
+    }
+
+    [[nodiscard]] utils::ErrorCode echo_on() const
+    {
+        utils::logger.info("Turning on AT command echo...\n");
+        return send_command("ATE1", "OK", buf);
     }
 
     [[nodiscard]] std::optional<unsigned int> connect_socket(
