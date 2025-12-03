@@ -2,12 +2,12 @@
 #include "queue.h"
 #include "task.h"
 
+#include "mock_freertos.h"
 #include <cstdint>
 #include <cstring>
-#include <vector>
 #include <deque>
 #include <unordered_map>
-#include "mock_freertos.h"
+#include <vector>
 
 // Simple counters for tests to inspect
 // Detailed logs

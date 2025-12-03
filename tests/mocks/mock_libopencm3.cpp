@@ -8,10 +8,10 @@
 
 #include "mock_libopencm3.h"
 #include <algorithm>
+#include <bme280_defs.h>
+#include <cstdint>
 #include <unordered_map>
 #include <vector>
-#include <cstdint>
-#include <bme280_defs.h>
 
 // Mock implementations
 void gpio_set_mode(uint32_t gpioport, uint8_t mode, uint8_t cnf, uint16_t gpios)
@@ -134,7 +134,7 @@ void i2c_transfer7(uint32_t i2c, uint8_t addr, const uint8_t* w, size_t wlen, ui
 
     // If this is a write, store the last register or handle register writes
     if (has_write) {
-        auto &state = bme_states[addr];
+        auto& state = bme_states[addr];
         // If writing more than one byte, first byte is reg addr
         uint8_t reg = w[0];
         state.last_reg = reg;
@@ -153,14 +153,15 @@ void i2c_transfer7(uint32_t i2c, uint8_t addr, const uint8_t* w, size_t wlen, ui
 
     const bool has_read = r && rlen;
     if (has_read) {
-        auto &state = bme_states[addr];
+        auto& state = bme_states[addr];
 
         // If last register is known, return appropriate data
         switch (state.last_reg) {
         case BME280_REG_CHIP_ID:
             if (rlen >= 1) {
                 r[0] = BME280_CHIP_ID;
-                if (rlen > 1) std::fill_n(r + 1, rlen - 1, 0);
+                if (rlen > 1)
+                    std::fill_n(r + 1, rlen - 1, 0);
             }
             break;
         case BME280_REG_STATUS:
@@ -168,7 +169,8 @@ void i2c_transfer7(uint32_t i2c, uint8_t addr, const uint8_t* w, size_t wlen, ui
                 if (state.resetting && state.reset_ticks > 0) {
                     r[0] = BME280_STATUS_IM_UPDATE;
                     state.reset_ticks--;
-                    if (state.reset_ticks == 0) state.resetting = false;
+                    if (state.reset_ticks == 0)
+                        state.resetting = false;
                 } else {
                     r[0] = 0;
                 }
@@ -178,22 +180,20 @@ void i2c_transfer7(uint32_t i2c, uint8_t addr, const uint8_t* w, size_t wlen, ui
             // Provide calibration data (26 bytes). First six bytes set
             // so dig_t1=27504, dig_t2=26435, dig_t3=-1000 which
             // together with the raw ADC below yield ~21.0°C.
-            const uint8_t calib[26] = {
-                0x70, 0x6B, 0x43, 0x67, 0x18, 0xFC, 0x22, 0x11,
-                0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80,
-                0x90, 0xA0, 0xB0, 0xC0, 0xD0, 0xE0, 0xF0, 0x01,
-                0x02, 0x03
-            };
+            const uint8_t calib[26] = { 0x70, 0x6B, 0x43, 0x67, 0x18, 0xFC, 0x22, 0x11, 0x10, 0x20, 0x30, 0x40, 0x50,
+                0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0, 0xC0, 0xD0, 0xE0, 0xF0, 0x01, 0x02, 0x03 };
             size_t copy = (rlen < sizeof(calib)) ? rlen : sizeof(calib);
             std::copy(calib, calib + copy, r);
-            if (rlen > copy) std::fill_n(r + copy, rlen - copy, 0);
+            if (rlen > copy)
+                std::fill_n(r + copy, rlen - copy, 0);
         } break;
         case BME280_REG_HUMIDITY_CALIB_DATA: {
             // Provide plausible humidity calibration (7 bytes)
             const uint8_t hcalib[7] = { 0x01, 0x80, 0x02, 0x90, 0x03, 0xA0, 0x04 };
             size_t copy = (rlen < sizeof(hcalib)) ? rlen : sizeof(hcalib);
             std::copy(hcalib, hcalib + copy, r);
-            if (rlen > copy) std::fill_n(r + copy, rlen - copy, 0);
+            if (rlen > copy)
+                std::fill_n(r + copy, rlen - copy, 0);
         } break;
         case BME280_REG_DATA: {
             // Return raw pressure(3), temp(3), hum(2) bytes (8 total).
@@ -202,11 +202,12 @@ void i2c_transfer7(uint32_t i2c, uint8_t addr, const uint8_t* w, size_t wlen, ui
             const uint8_t data[8] = {
                 0x6A, 0xBC, 0x00, // pressure msb, lsb, xlsb (unchanged)
                 0x7B, 0xBF, 0x00, // temp msb, lsb, xlsb -> raw temp ~506864
-                0x40, 0x00        // humidity msb, lsb
+                0x40, 0x00 // humidity msb, lsb
             };
             size_t copy = (rlen < sizeof(data)) ? rlen : sizeof(data);
             std::copy(data, data + copy, r);
-            if (rlen > copy) std::fill_n(r + copy, rlen - copy, 0);
+            if (rlen > copy)
+                std::fill_n(r + copy, rlen - copy, 0);
         } break;
         default:
             // Unrecognized register: return zeros

@@ -12,8 +12,11 @@ constexpr unsigned int measurement_queue_size = 10;
 
 struct LedTaskArgs {
     const BlinkyLED* led;
-    
-    explicit LedTaskArgs(const BlinkyLED* led_ptr) : led(led_ptr) {}
+
+    explicit LedTaskArgs(const BlinkyLED* led_ptr)
+        : led(led_ptr)
+    {
+    }
 };
 void led_task(void* a);
 

@@ -1,5 +1,5 @@
-#include "Temperature.h"
 #include "I2C.h"
+#include "Temperature.h"
 #include "doctest.h"
 #include "mock_libopencm3.h"
 

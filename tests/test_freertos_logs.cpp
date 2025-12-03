@@ -13,7 +13,7 @@ TEST_CASE("FreeRTOS mock records task create and queue operations")
     mock_libopencm3_reset();
 
     // Call xTaskCreate to record a task
-    xTaskCreate((TaskFunction_t)nullptr, "test_task", 128, nullptr, 5, nullptr);
+    xTaskCreate((TaskFunction_t) nullptr, "test_task", 128, nullptr, 5, nullptr);
     REQUIRE(mock_task_create_calls.size() == 1);
     CHECK(mock_task_create_calls[0].name == "test_task");
     CHECK(mock_task_create_calls[0].stack_depth == 128);

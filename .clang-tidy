@@ -1,8 +1,7 @@
 ---
-Checks:          'clang-diagnostic-*,clang-analyzer-*,bugprone-*,clang-analyzer-*,concurrency-*,cppcoreguidelines-*,misc-*,modernize-*,performance-*,portability-*,readability-*,-modernize-use-trailing-return-type'
+Checks:          'clang-diagnostic-*,clang-analyzer-*,bugprone-*,clang-analyzer-*,concurrency-*,cppcoreguidelines-*,misc-*,modernize-*,performance-*,portability-*,readability-*,-readability-magic-numbers,-modernize-use-trailing-return-type,-llvm-header-guard,-portability-avoid-pragma-once'
 WarningsAsErrors: ''
 HeaderFilterRegex: 'src/*'
-AnalyzeTemporaryDtors: false
 FormatStyle:     WebKit
 User:            leo
 CheckOptions:
@@ -60,7 +59,6 @@ CheckOptions:
   bugprone-not-null-terminated-result.WantToUseSafeFunctions: 'true'
   bugprone-string-constructor.LargeLengthThreshold: '8388608'
   readability-simplify-boolean-expr.ChainedConditionalAssignment: 'false'
-  cppcoreguidelines-avoid-magic-numbers.IgnoreAllFloatingPointValues: 'false'
   cert-oop54-cpp.WarnOnlyIfThisHasSuspiciousField: 'false'
   bugprone-exception-escape.FunctionsThatShouldNotThrow: ''
   performance-inefficient-vector-operation.EnableProto: 'false'
@@ -78,7 +76,6 @@ CheckOptions:
   readability-redundant-string-init.StringNames: '::std::basic_string_view;::std::basic_string'
   modernize-make-unique.IgnoreDefaultInitialization: 'true'
   modernize-use-emplace.ContainersWithPushBack: '::std::vector;::std::list;::std::deque'
-  readability-magic-numbers.IgnoreBitFieldsWidths: 'true'
   modernize-make-unique.IncludeStyle: llvm
   modernize-use-override.OverrideSpelling: override
   readability-suspicious-call-argument.LevenshteinDissimilarBelow: '50'
@@ -89,13 +86,11 @@ CheckOptions:
   bugprone-reserved-identifier.AllowedIdentifiers: ''
   cppcoreguidelines-pro-type-member-init.IgnoreArrays: 'false'
   readability-else-after-return.WarnOnUnfixable: 'true'
-  cppcoreguidelines-avoid-magic-numbers.IgnoredFloatingPointValues: '1.0;100.0;'
   modernize-use-emplace.IgnoreImplicitConstructors: 'false'
   cppcoreguidelines-macro-usage.IgnoreCommandLineMacros: 'true'
   readability-suspicious-call-argument.Substring: 'true'
   modernize-use-equals-delete.IgnoreMacros: 'true'
   readability-identifier-length.IgnoredVariableNames: ''
-  readability-magic-numbers.IgnoreAllFloatingPointValues: 'false'
   cppcoreguidelines-pro-bounds-constant-array-index.IncludeStyle: llvm
   readability-suspicious-call-argument.Abbreviations: 'arr=array;cnt=count;idx=index;src=source;stmt=statement;cpy=copy;dest=destination;dist=distancedst=distance;ptr=pointer;wdth=width;str=string;ln=line;srv=server;attr=attribute;ref=reference;buf=buffer;col=column;nr=number;vec=vector;len=length;elem=element;val=value;i=index;var=variable;hght=height;cl=client;num=number;pos=position;lst=list;addr=address'
   bugprone-misplaced-widening-cast.CheckImplicitCasts: 'false'
@@ -106,9 +101,6 @@ CheckOptions:
   readability-identifier-length.MinimumExceptionNameLength: '2'
   misc-definitions-in-headers.UseHeaderFileExtension: 'true'
   google-readability-namespace-comments.SpacesBeforeComments: '2'
-  cppcoreguidelines-avoid-magic-numbers.IgnoreBitFieldsWidths: 'true'
-  cppcoreguidelines-avoid-magic-numbers.IgnorePowersOf2IntegerValues: 'false'
-  cppcoreguidelines-avoid-magic-numbers.IgnoredIntegerValues: '1;2;3;4;'
   cppcoreguidelines-no-malloc.Allocations: '::malloc;::calloc'
   misc-throw-by-value-catch-by-reference.MaxSize: '-1'
   bugprone-narrowing-conversions.IgnoreConversionFromTypes: ''
@@ -129,7 +121,6 @@ CheckOptions:
   modernize-use-emplace.SmartPointers: '::std::shared_ptr;::std::unique_ptr;::std::auto_ptr;::std::weak_ptr'
   cppcoreguidelines-no-malloc.Deallocations: '::free'
   bugprone-dangling-handle.HandleClasses: 'std::basic_string_view;std::experimental::basic_string_view'
-  readability-magic-numbers.IgnorePowersOf2IntegerValues: 'false'
   misc-const-correctness.TransformPointersAsValues: 'false'
   readability-suspicious-call-argument.JaroWinklerSimilarAbove: '85'
   misc-unused-parameters.StrictMode: 'false'
@@ -221,7 +212,6 @@ CheckOptions:
   bugprone-argument-comment.CommentBoolLiterals: '0'
   readability-braces-around-statements.ShortStatementLines: '0'
   bugprone-argument-comment.CommentUserDefinedLiterals: '0'
-  readability-magic-numbers.IgnoredFloatingPointValues: '1.0;100.0;'
   performance-inefficient-string-concatenation.StrictMode: 'false'
   readability-redundant-declaration.IgnoreMacros: 'true'
   bugprone-easily-swappable-parameters.IgnoredParameterTypeSuffixes: 'bool;Bool;_Bool;it;It;iterator;Iterator;inputit;InputIt;forwardit;ForwardIt;bidirit;BidirIt;constiterator;const_iterator;Const_Iterator;Constiterator;ConstIterator;RandomIt;randomit;random_iterator;ReverseIt;reverse_iterator;reverse_const_iterator;ConstReverseIterator;Const_Reverse_Iterator;const_reverse_iterator;Constreverseiterator;constreverseiterator'
@@ -264,7 +254,6 @@ CheckOptions:
   readability-identifier-length.IgnoredLoopCounterNames: '^[ijk_]$'
   cppcoreguidelines-avoid-do-while.IgnoreMacros: 'false'
   modernize-raw-string-literal.ReplaceShorterLiterals: 'false'
-  readability-magic-numbers.IgnoredIntegerValues: '1;2;3;4;'
   performance-inefficient-vector-operation.VectorLikeClasses: '::std::vector'
   modernize-use-auto.RemoveStars: 'false'
   bugprone-implicit-widening-of-multiplication-result.IncludeStyle: llvm
@@ -273,5 +262,11 @@ CheckOptions:
   readability-redundant-member-init.IgnoreBaseInCopyConstructors: 'false'
   modernize-replace-disallow-copy-and-assign-macro.MacroName: DISALLOW_COPY_AND_ASSIGN
   llvm-else-after-return.WarnOnUnfixable: 'false'
+
+  cppcoreguidelines-avoid-magic-numbers.IgnoreBitFieldsWidths: 'true'
+  cppcoreguidelines-avoid-magic-numbers.IgnorePowersOf2IntegerValues: 'true'
+  cppcoreguidelines-avoid-magic-numbers.IgnoredIntegerValues: '1;2;3;4;10000'
+  cppcoreguidelines-avoid-magic-numbers.IgnoredFloatingPointValues: '1.0;100.0;'
+  cppcoreguidelines-avoid-magic-numbers.IgnoreAllFloatingPointValues: 'false'
 ...
 

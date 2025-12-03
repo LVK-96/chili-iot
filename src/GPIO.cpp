@@ -1,5 +1,7 @@
 #include <cstdint>
 
+#include <libopencm3/stm32/gpio.h>
+
 #include "GPIO.h"
 
 void GPIOPort::set_pins(uint16_t pins) const { gpio_set(port, pins); }

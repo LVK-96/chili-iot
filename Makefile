@@ -189,14 +189,33 @@ $(BME280_LIB_DIR)/bme280.o: $(BME280_DIR)/bme280.c
 	@$(CC) $(TGT_CFLAGS) -Wno-missing-field-initializers -o $@ -c $< # Bosch driver gives missing-field-initializers warning
 
 # Style checks
-style-check:
-	clang-format --Werror --dry-run src/**
+# Style checks
+ALL_SRC_FILES := $(shell find src tests -name '*.c' -o -name '*.cpp' -o -name '*.h' -o -name '*.hpp')
+CLANG_TIDY_SRCS := $(filter %.c %.cpp, $(ALL_SRC_FILES))
 
-style-fix:
-	clang-format --Werror -i src/**
+STYLE_CHECK_TARGETS := $(addsuffix .style-check, $(ALL_SRC_FILES))
+STYLE_FIX_TARGETS   := $(addsuffix .style-fix, $(ALL_SRC_FILES))
+CLANG_TIDY_TARGETS  := $(addsuffix .clang-tidy, $(CLANG_TIDY_SRCS))
+CLANG_TIDY_FIX_TARGETS := $(addsuffix .clang-tidy-fix, $(CLANG_TIDY_SRCS))
 
-clang-tidy:
-	clang-tidy -p compile_commands.json src/**
+.PHONY: style-check style-fix clang-tidy clang-tidy-fix
+
+style-check: $(STYLE_CHECK_TARGETS)
+style-fix: $(STYLE_FIX_TARGETS)
+clang-tidy: $(CLANG_TIDY_TARGETS)
+clang-tidy-fix: $(CLANG_TIDY_FIX_TARGETS)
+
+%.style-check: %
+	@clang-format --Werror --dry-run $<
+
+%.style-fix: %
+	@clang-format --Werror -i $<
+
+%.clang-tidy: %
+	@clang-tidy -p compile_commands.json $<
+
+%.clang-tidy-fix: %
+	@clang-tidy --fix -p compile_commands.json $<
 
 # Clean
 clean:

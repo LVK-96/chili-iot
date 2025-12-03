@@ -1,7 +1,7 @@
 #include "I2C.h"
 #include "doctest.h"
-#include "utils.h"
 #include "mock_libopencm3.h"
+#include "utils.h"
 
 #include <array>
 #include <span>

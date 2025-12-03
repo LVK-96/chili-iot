@@ -1,10 +1,10 @@
-#include "USART.h"
 #include "DMA.h"
+#include "USART.h"
 #include "doctest.h"
 #include "mock_libopencm3.h"
 
-#include <atomic>
 #include <array>
+#include <atomic>
 
 TEST_CASE("USART basic operations")
 {
@@ -53,17 +53,17 @@ TEST_CASE("USARTWithDMA basic DMA operations")
     static volatile std::atomic_bool tx_half_flag(false);
     static volatile std::atomic_bool tx_complete_flag(false);
 
-    DMAChannelAndFlags rx_chan{ BluePillDMAChannel::_2, &rx_err_flag, &rx_half_flag, &rx_complete_flag };
-    DMAChannelAndFlags tx_chan{ BluePillDMAChannel::_3, &tx_err_flag, &tx_half_flag, &tx_complete_flag };
+    DMAChannelAndFlags rx_chan { BluePillDMAChannel::_2, &rx_err_flag, &rx_half_flag, &rx_complete_flag };
+    DMAChannelAndFlags tx_chan { BluePillDMAChannel::_3, &tx_err_flag, &tx_half_flag, &tx_complete_flag };
 
-    USARTDMA udma{ &dma, rx_chan, tx_chan };
+    USARTDMA udma { &dma, rx_chan, tx_chan };
 
     USARTWithDMA usart_dma(BluePillUSART::_2, RCC_USART2, RST_USART2, udma);
 
     // Prepare a dummy buffer and enable DMA for RX
     std::array<uint8_t, 8> buff = {};
-    usart_dma.enable_rx_dma(static_cast<uint32_t>(reinterpret_cast<uintptr_t>(buff.data())),
-                            static_cast<unsigned int>(buff.size()));
+    usart_dma.enable_rx_dma(
+        static_cast<uint32_t>(reinterpret_cast<uintptr_t>(buff.data())), static_cast<unsigned int>(buff.size()));
 
     // The mock should have recorded DMA channel enable
     CHECK(mock_dma_enable_channel_count >= 1);

@@ -1,17 +1,17 @@
 #pragma once
 
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 
 // Exposed for tests to assert that mocked libopencm3 functions are called.
 #include <cstddef>
 #include <vector>
 
 struct MockI2CCall {
-	uint8_t addr;
-	size_t wlen;
-	size_t rlen;
-	std::vector<uint8_t> wdata; // copy of written bytes (if any)
+    uint8_t addr;
+    size_t wlen;
+    size_t rlen;
+    std::vector<uint8_t> wdata; // copy of written bytes (if any)
 };
 
 extern std::vector<MockI2CCall> mock_i2c_calls;
@@ -20,13 +20,13 @@ extern std::vector<uint16_t> mock_usart_send_bytes;
 extern int mock_usart_recv_blocking_count;
 
 struct MockDMANumberCall {
-	uint8_t channel;
-	uint16_t number;
+    uint8_t channel;
+    uint16_t number;
 };
 
 struct MockDMAAddressCall {
-	uint8_t channel;
-	uint32_t address;
+    uint8_t channel;
+    uint32_t address;
 };
 
 extern std::vector<MockDMANumberCall> mock_dma_number_calls;

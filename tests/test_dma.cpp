@@ -12,9 +12,8 @@ TEST_CASE("DMA setup and enable/disable recordings")
     DMA dma(BluePillDMAController::_1, RCC_DMA1);
 
     // Setup a channel in PER2MEM mode
-    dma.setup_channel(DMADirection::PER2MEM, BluePillDMAChannel::_1, 0x40000000,
-                      BluePillDMAPeripheralWordSize::BYTE, 0x20000000,
-                      BluePillDMAMemWordSize::BYTE, BluePillDMAPriority::HIGH, 8, true, true, true, true, true);
+    dma.setup_channel(DMADirection::PER2MEM, BluePillDMAChannel::_1, 0x40000000, BluePillDMAPeripheralWordSize::BYTE,
+        0x20000000, BluePillDMAMemWordSize::BYTE, BluePillDMAPriority::HIGH, 8, true, true, true, true, true);
 
     // Verify that the peripheral/memory addresses and number of data were recorded
     REQUIRE(mock_dma_periph_addr_calls.size() >= 1);
@@ -55,9 +54,9 @@ TEST_CASE("USARTWithDMA get_dma_count reads DMA CNDTR")
 
     DMA dma(BluePillDMAController::_1, RCC_DMA1);
 
-    DMAChannelAndFlags rx_chan{ BluePillDMAChannel::_2, &rx_err_flag, &rx_half_flag, &rx_complete_flag };
-    DMAChannelAndFlags tx_chan{ BluePillDMAChannel::_3, &tx_err_flag, &tx_half_flag, &tx_complete_flag };
-    USARTDMA udma{ &dma, rx_chan, tx_chan };
+    DMAChannelAndFlags rx_chan { BluePillDMAChannel::_2, &rx_err_flag, &rx_half_flag, &rx_complete_flag };
+    DMAChannelAndFlags tx_chan { BluePillDMAChannel::_3, &tx_err_flag, &tx_half_flag, &tx_complete_flag };
+    USARTDMA udma { &dma, rx_chan, tx_chan };
 
     USARTWithDMA usart_dma(BluePillUSART::_2, RCC_USART2, RST_USART2, udma);
 
