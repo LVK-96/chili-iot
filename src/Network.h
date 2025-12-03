@@ -137,16 +137,37 @@ public:
         return connect_to_ap();
     }
 
+    void disconnect_ap() const
+    {
+        utils::logger.info("Disconnecting from AP...\n");
+        send_command_dont_care("AT+CWQAP");
+    }
+
     [[nodiscard]] utils::ErrorCode connect_to_ap() override
     {
         utils::logger.info("Connecting to AP...\n");
-        auto res = send_command("AT+CWJAP_CUR=\"" WIFI_AP "\",\"" WIFI_PASS "\"", "OK", buf, 10'000);
-        if (res == utils::ErrorCode::OK) {
-            utils::logger.info("Connencted to AP: " WIFI_AP "!\n");
+
+        // Check if already connected
+        auto res = send_command("AT+CWJAP_DEF?", "+CWJAP_DEF:\"" WIFI_AP "\"", buf, 10'000);
+        bool correct_ap_connected = res == utils::ErrorCode::OK;
+
+        if (correct_ap_connected) {
+            utils::logger.info("Already connected to AP: " WIFI_AP "!\n");
             ap_connected = true;
-        } else {
-            utils::logger.error("Failed to connect to AP: " WIFI_AP "!\n");
         }
+
+        if (!correct_ap_connected) {
+            disconnect_ap();
+            res = send_command("AT+CWJAP_DEF=\"" WIFI_AP "\",\"" WIFI_PASS "\"", "OK", buf, 10'000);
+            if (res == utils::ErrorCode::OK) {
+                ap_connected = true;
+            } else {
+                utils::logger.error("Failed to connect to AP: " WIFI_AP "!\n");
+            }
+        }
+
+        if (ap_connected)
+            utils::logger.info("Connencted to AP: " WIFI_AP "!\n");
 
         return res;
     }
