@@ -268,11 +268,7 @@ private:
 
     bool socket_connected(unsigned int id) const { return (id < max_connections) && socket_connections[id]; }
 
-    void send_raw(std::span<uint8_t> bytes) const { usart->send_blocking(bytes); }
-
-    void send_raw(uint8_t byte) const { usart->send_blocking(byte); }
-
-    void send_raw(std::string_view msg) const { usart->send_blocking(msg); }
+    template <typename T> void send_raw(T& data) const { usart->send_blocking(data); }
 
     void send_command_dont_care(std::string_view cmd) const
     {

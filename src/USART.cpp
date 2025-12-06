@@ -32,22 +32,6 @@ void USART::setup(unsigned int baudrate, unsigned int databits, USARTStopBits st
     is_setup = true;
 }
 
-// FIXME: Some kind of template reduce repetition here?
-void USART::send_blocking(uint8_t byte) const { usart_send_blocking(usart, byte); }
-void USART::send_blocking(std::span<uint8_t> bytes) const
-{
-    for (const auto& byte : bytes) {
-        usart_send_blocking(usart, byte);
-    }
-}
-
-void USART::send_blocking(char c) const { usart_send_blocking(usart, c); }
-void USART::send_blocking(std::string_view str) const
-{
-    for (const auto& ch : str) {
-        send_blocking(ch);
-    }
-}
 uint16_t USART::recieve_blocking() const { return usart_recv_blocking(usart); }
 uint16_t USART::recieve() const { return usart_recv(usart); }
 

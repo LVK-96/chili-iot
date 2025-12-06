@@ -45,9 +45,4 @@ void Logger::error(std::string_view msg, utils::ErrorCode code) const
     log(msg, LogLevel::ERROR);
 }
 
-void USARTLogger::_log(std::string_view msg) const
-{
-    for (const auto& ch : msg) {
-        usart->send_blocking(ch);
-    }
-}
+void USARTLogger::_log(std::string_view msg) const { usart->send_blocking(msg); }

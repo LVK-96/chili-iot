@@ -1,8 +1,7 @@
 #pragma once
 
 #include <atomic>
-#include <span>
-#include <string_view>
+#include <ranges>
 
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/usart.h>
@@ -52,10 +51,12 @@ public:
         USARTFlowControl flowcontrol);
     void disable() const override;
     void enable() const override;
-    void send_blocking(uint8_t byte) const;
-    void send_blocking(std::span<uint8_t> bytes) const;
-    void send_blocking(char c) const;
-    void send_blocking(std::string_view str) const;
+    template <std::ranges::range R> void send_blocking(R&& range) const
+    {
+        for (const auto& byte : std::forward<R>(range)) {
+            usart_send_blocking(usart, byte);
+        }
+    }
     [[nodiscard]] uint16_t recieve_blocking() const;
     [[nodiscard]] uint16_t recieve() const;
     void rx_interrupt(bool set) const;
