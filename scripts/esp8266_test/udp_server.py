@@ -8,6 +8,7 @@ import socket
 import os
 from typing import Optional
 import threading
+from datetime import datetime
 
 
 def server(stop_event: Optional[threading.Event] = None) -> None:
@@ -33,7 +34,7 @@ def server(stop_event: Optional[threading.Event] = None) -> None:
             except UnicodeDecodeError:
                 msg = "0x" + data.hex()
             finally:
-                print(f"Server: Received message: {msg}")
+                print(f"[{datetime.now().strftime('%H:%M:%S.%f')}] Server: Received message: {msg}")
         # Check for the stop event -> when it is set we should close the server
         if (stop_event is not None) and stop_event.is_set():
             print("Server: Stopping...")
