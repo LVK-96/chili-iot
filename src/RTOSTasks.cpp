@@ -88,7 +88,7 @@ void network_task(void* a)
         double reading = 0;
         if (xQueueReceive(args->measurement_queue, &reading, portMAX_DELAY) != errQUEUE_EMPTY) {
             utils::logger.info("Sending reading...\n");
-            std::ignore = sock.send({ reinterpret_cast<uint8_t*>(&reading), sizeof(reading) });
+            std::ignore = sock.send({ reinterpret_cast<std::byte*>(&reading), sizeof(reading) });
             utils::logger.info("Reading sent!\n");
         }
     }

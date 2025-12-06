@@ -117,6 +117,7 @@ static void systick_setup()
 static void interrupt_setup()
 {
     nvic_enable_irq(NVIC_DMA1_CHANNEL6_IRQ); // DMA1 Channel 6, USART2 RX uses this channel
+    nvic_enable_irq(NVIC_DMA1_CHANNEL7_IRQ); // DMA1 Channel 7, USART2 TX uses this channel
     nvic_enable_irq(NVIC_USART2_IRQ); // USART2 interrupts
     utils::logger.info("Interrupts setup!\n");
 }

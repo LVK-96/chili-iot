@@ -126,7 +126,13 @@ void USARTWithDMA::reset_rx_dma() const
     usart2_overrun_error = false;
 }
 
-void USARTWithDMA::reset_tx_dma() const { dma_channels.dma->reset(dma_channels.tx_channel.channel); }
+void USARTWithDMA::reset_tx_dma() const
+{
+    dma_channels.dma->reset(dma_channels.tx_channel.channel);
+    *(dma_channels.tx_channel.error_flag) = false;
+    *(dma_channels.tx_channel.half_flag) = false;
+    *(dma_channels.tx_channel.complete_flag) = false;
+}
 
 unsigned int USARTWithDMA::get_dma_count() const
 {

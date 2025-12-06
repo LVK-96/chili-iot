@@ -101,6 +101,11 @@ public:
     void reset_tx_dma() const;
     [[nodiscard]] unsigned int get_dma_count() const;
 
+    [[nodiscard]] bool get_rx_dma_complete_flag() const { return *dma_channels.rx_channel.complete_flag; }
+    [[nodiscard]] bool get_tx_dma_complete_flag() const { return *dma_channels.tx_channel.complete_flag; }
+    [[nodiscard]] bool get_rx_dma_error_flag() const { return *dma_channels.rx_channel.error_flag; }
+    [[nodiscard]] bool get_tx_dma_error_flag() const { return *dma_channels.tx_channel.error_flag; }
+
 private:
     USARTDMA dma_channels;
 };

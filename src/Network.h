@@ -10,6 +10,7 @@
 #include <libopencm3/stm32/dma.h>
 #include <libopencm3/stm32/usart.h>
 
+#include "ATCommand.h"
 #include "GPIO.h"
 #include "Logger.h"
 #include "System.h"
@@ -46,7 +47,7 @@ public:
     [[nodiscard]] virtual std::optional<unsigned int> connect_socket(
         SocketType sock_type, std::string_view addr, std::string_view port)
         = 0;
-    [[nodiscard]] virtual utils::ErrorCode send_socket(unsigned int id, std::span<uint8_t> data) const = 0;
+    [[nodiscard]] virtual utils::ErrorCode send_socket(unsigned int id, std::span<std::byte> data) const = 0;
     [[nodiscard]] virtual utils::ErrorCode close_socket(unsigned int id) = 0;
 };
 
@@ -69,7 +70,7 @@ public:
             // Enable usart interrupts
             usart->error_interrupt(true);
             // Enable usart DMA
-            usart->enable_rx_dma(reinterpret_cast<uintptr_t>(buf.data()), buf.size());
+            usart->enable_rx_dma(reinterpret_cast<uintptr_t>(rx_buf.data()), rx_buf.size());
 
             reset_pin->port->set_pins(reset_pin->pin_nro);
             bluepill::async_wait_ms(reset_time); // Wait a bit so the ESP8266 has time to reset
@@ -79,8 +80,8 @@ public:
             // Disable usart interrupts
             usart->error_interrupt(false);
             auto count = usart->get_dma_count();
-            unsigned read = buf.size() - count; // Check how many bytes were received
-            const std::string_view sv { const_cast<char*>(buf.data()), read };
+            unsigned read = rx_buf.size() - count; // Check how many bytes were received
+            const std::string_view sv { const_cast<char*>(rx_buf.data()), read };
             utils::logger.info("Printing the received data (if any)...\n");
             if (read > 0) {
                 utils::logger.log(sv);
@@ -102,9 +103,9 @@ public:
             // Enable usart interrupts
             usart->error_interrupt(true);
             // Enable usart DMA
-            usart->enable_rx_dma(reinterpret_cast<uintptr_t>(buf.data()), buf.size());
+            usart->enable_rx_dma(reinterpret_cast<uintptr_t>(rx_buf.data()), rx_buf.size());
 
-            send_command_dont_care("AT+RST");
+            send_raw(esp8266::commands::RESET);
             bluepill::async_wait_ms(reset_time); // Wait a bit so the ESP8266 has time to reset
 
             // Disable DMA
@@ -112,15 +113,15 @@ public:
             // Disable usart interrupts
             usart->error_interrupt(false);
             auto count = usart->get_dma_count();
-            unsigned read = buf.size() - count; // Check how many bytes were received
-            const std::string_view sv { const_cast<char*>(buf.data()), read };
+            unsigned read = rx_buf.size() - count; // Check how many bytes were received
+            const std::string_view sv { const_cast<char*>(rx_buf.data()), read };
             utils::logger.info("Printing the received data (if any)...\n");
             if (read > 0) {
                 utils::logger.log(sv);
             }
             utils::logger.log("\n");
         } else {
-            send_command_dont_care("AT+RST");
+            send_raw(esp8266::commands::RESET);
             bluepill::async_wait_ms(reset_time); // Wait a bit so the ESP8266 has time to reset
         }
 
@@ -143,7 +144,7 @@ public:
     void disconnect_ap() const
     {
         utils::logger.info("Disconnecting from AP...\n");
-        send_command_dont_care("AT+CWQAP");
+        send_raw(esp8266::commands::DISCONNECT_AP);
     }
 
     [[nodiscard]] utils::ErrorCode connect_to_ap() override
@@ -151,7 +152,7 @@ public:
         utils::logger.info("Connecting to AP...\n");
 
         // Check if already connected
-        auto res = send_command("AT+CWJAP_DEF?", "+CWJAP_DEF:\"" WIFI_AP "\"", buf);
+        auto res = send_command(esp8266::commands::QUERY_AP_DEF, "+CWJAP_DEF:\"" WIFI_AP "\"");
         bool correct_ap_connected = res == utils::ErrorCode::OK;
 
         if (correct_ap_connected) {
@@ -161,7 +162,7 @@ public:
 
         if (!correct_ap_connected) {
             disconnect_ap();
-            res = send_command("AT+CWJAP_DEF=\"" WIFI_AP "\",\"" WIFI_PASS "\"", "OK", buf);
+            res = send_command(join_ap_def(WIFI_AP, WIFI_PASS), "OK");
             if (res == utils::ErrorCode::OK) {
                 ap_connected = true;
             } else {
@@ -180,19 +181,19 @@ public:
     [[nodiscard]] utils::ErrorCode test_msg() const
     {
         utils::logger.info("Testing serial connection to ESP8266...\n");
-        return send_command("AT", "OK", buf);
+        return send_command(esp8266::commands::TEST, "OK");
     }
 
     [[nodiscard]] utils::ErrorCode echo_off() const
     {
         utils::logger.info("Turning off AT command echo...\n");
-        return send_command("ATE0", "OK", buf);
+        return send_command(esp8266::commands::ECHO_OFF, "OK");
     }
 
     [[nodiscard]] utils::ErrorCode echo_on() const
     {
         utils::logger.info("Turning on AT command echo...\n");
-        return send_command("ATE1", "OK", buf);
+        return send_command(esp8266::commands::ECHO_ON, "OK");
     }
 
     [[nodiscard]] std::optional<unsigned int> connect_socket(
@@ -200,27 +201,25 @@ public:
     {
         std::optional<unsigned int> res = std::nullopt;
         if (ap_connected && (connections < max_connections)) {
-            send_raw("AT+CIPSTART=");
-            if (type == SocketType::UDP) {
-                send_raw("\"UDP\"");
-            } else { // TCP
-                send_raw("\"TCP\"");
-            }
-            send_raw(",\"");
-            send_raw(addr);
-            send_raw("\",");
-            send_raw(port);
-            if (send_command("", "OK", buf) == utils::ErrorCode::OK) {
+            // Build command in a fixed-size rx_buffer to send in one DMA transaction
+            constexpr size_t max_cmd_size
+                = std::size(R"(AT+CIPSTART="UDP","255.255.255.255",65535)") + 2; // +2 for \r\n
+            char cmd[max_cmd_size];
+            const auto* type_str = (type == SocketType::UDP) ? "UDP" : "TCP";
+            std::snprintf(cmd, max_cmd_size, "AT+CIPSTART=\"%s\",\"%.*s\",%.*s\r\n", type_str,
+                static_cast<int>(addr.size()), addr.data(), static_cast<int>(port.size()), port.data());
+
+            if (send_command(esp8266::ATCommand(std::string_view(cmd)), "OK") == utils::ErrorCode::OK) {
                 connections++;
                 unsigned int id = 0; // Only 1 connection at a time supported for now
                 socket_connections[id] = true;
                 res = id;
             }
 
-            if ((send_command("AT+CIPMODE=1", "OK", buf) != utils::ErrorCode::OK)
-                || (send_command("AT+CIPSEND", "OK", buf) != utils::ErrorCode::OK)) {
+            if ((send_command(esp8266::commands::TRANSPARENT_MODE, "OK") != utils::ErrorCode::OK)
+                || (send_command(esp8266::commands::START_SEND, "OK") != utils::ErrorCode::OK)) {
                 utils::logger.error("Failed to set ESP8266 to transparent mode!\n");
-                send_command_dont_care("AT+CIPCLOSE");
+                send_raw(esp8266::commands::CLOSE_SOCKET);
                 res = std::nullopt;
             }
         }
@@ -228,7 +227,7 @@ public:
         return res;
     }
 
-    [[nodiscard]] utils::ErrorCode send_socket(unsigned int id, std::span<uint8_t> data) const override
+    [[nodiscard]] utils::ErrorCode send_socket(unsigned int id, std::span<std::byte> data) const override
     {
         if (ap_connected && socket_connected(id)) {
             send_raw(data);
@@ -242,7 +241,7 @@ public:
     [[nodiscard]] utils::ErrorCode close_socket(unsigned int id) override
     {
         if (ap_connected && socket_connected(id)) {
-            send_command_dont_care("AT+CIPCLOSE");
+            send_raw(esp8266::commands::CLOSE_SOCKET);
             connections--;
             socket_connections[id] = false;
             return utils::ErrorCode::OK;
@@ -266,35 +265,50 @@ private:
     unsigned int connections = 0;
     std::array<bool, max_connections> socket_connections = { false };
 
-    mutable std::array<volatile char, 2048> buf {};
+    mutable std::array<volatile char, 2048> rx_buf {};
+    [[maybe_unused]] mutable std::array<volatile char, 2048> tx_buf {};
 
     bool socket_connected(unsigned int id) const { return (id < max_connections) && socket_connections[id]; }
 
-    template <typename T> void send_raw(T& data) const { usart->send_blocking(data); }
-
-    void send_command_dont_care(std::string_view cmd) const
+    template <typename T>
+        requires std::ranges::contiguous_range<T>
+    void send_raw(const T& data, unsigned int response_time_ms = 1000) const
     {
-        send_raw(cmd);
-        send_raw("\r\n");
+        if (std::ranges::size(data) == 0) {
+            return;
+        }
+
+        // Enable TX DMA with tx DMA from data
+        usart->enable_tx_dma(
+            reinterpret_cast<uintptr_t>(data.data()), data.size() * sizeof(std::ranges::range_value_t<T>));
+
+        // Wait for DMA transfer to complete (with timeout to prevent infinite loop)
+        bluepill::async_wait_ms(response_time_ms);
+        unsigned int timeout = 1000;
+        while (!usart->get_tx_dma_complete_flag() && timeout-- > 0) {
+            bluepill::async_wait_ms(response_time_ms);
+        }
+
+        if (usart->get_tx_dma_error_flag() || timeout == 0) {
+            // "Handle error" :D
+            utils::logger.error("USART TX DMA: Failed to send data!\n");
+        }
+
+        // Cleanup
+        usart->disable_tx_dma();
     }
 
-    void send_data_dont_care(std::span<uint8_t> data) const
-    {
-        send_raw(data);
-        send_raw("\r\n");
-    }
-
-    [[nodiscard]] utils::ErrorCode send_command(std::string_view cmd, std::string_view ok_response,
-        std::span<volatile char> response_buf, unsigned int response_time_ms = 1000) const
+    [[nodiscard]] utils::ErrorCode send_command(
+        esp8266::ATCommand cmd, std::string_view ok_response, unsigned int response_time_ms = 1000) const
     {
         using namespace std::literals; // std::string_view literals
         // Enable usart interrupts
         usart->error_interrupt(true);
         // Enable usart DMA
-        usart->enable_rx_dma(reinterpret_cast<uintptr_t>(response_buf.data()), response_buf.size());
+        usart->enable_rx_dma(reinterpret_cast<uintptr_t>(rx_buf.data()), rx_buf.size());
 
         // Send the command
-        send_command_dont_care(cmd);
+        send_raw(cmd);
         // Wait a bit for the response
         bluepill::async_wait_ms(response_time_ms);
 
@@ -306,8 +320,8 @@ private:
         // Check the response
         auto res = utils::ErrorCode::OK;
         auto count = usart->get_dma_count();
-        unsigned read = response_buf.size() - count; // Check how many bytes were received
-        const std::string_view sv { const_cast<char*>(response_buf.data()), read };
+        unsigned read = rx_buf.size() - count; // Check how many bytes were received
+        const std::string_view sv { const_cast<char*>(rx_buf.data()), read };
         if (!usart2_overrun_error) {
             // Split respone by line by line, check if any of the lines contains the OK response
             if (!(std::ranges::any_of(sv | std::views::lazy_split("\r\n"sv),
@@ -315,7 +329,8 @@ private:
                 res = utils::ErrorCode::NETWORK_RESPONSE_NOT_OK_ERROR;
             }
         } else { // Overrun error happened, something went wrong
-            utils::logger.info("ESP8266 response caused an USART overrun error! Is the reponse buffer big enough?\n");
+            utils::logger.info(
+                "ESP8266 response caused an USART overrun error! Is the reponse rx_buffer big enough?\n");
             res = utils::ErrorCode::NETWORK_RESPONSE_OVERRUN_ERROR;
         }
 
@@ -365,7 +380,7 @@ public:
         return res;
     }
 
-    [[nodiscard]] utils::ErrorCode send(std::span<uint8_t> data) const
+    [[nodiscard]] utils::ErrorCode send(std::span<std::byte> data) const
     {
         auto res = utils::ErrorCode::NETWORK_RESPONSE_NOT_OK_ERROR;
         if (id) {
