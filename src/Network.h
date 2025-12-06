@@ -129,10 +129,12 @@ public:
 
     utils::ErrorCode init() override
     {
-        const auto echo_off_or_on
-            = debug ? std::bind(&ESP8266Network::echo_on, this) : std::bind(&ESP8266Network::echo_off, this);
+        std::function<utils::ErrorCode()> echo_on_or_off = [this] { return echo_off(); };
+        if (debug) {
+            echo_on_or_off = [this] { return echo_on(); };
+        }
         reset_pin->port->set_pins(reset_pin->pin_nro);
-        while (!(test_msg() == utils::ErrorCode::OK && echo_off_or_on() == utils::ErrorCode::OK)) {
+        while (test_msg() != utils::ErrorCode::OK || echo_on_or_off() != utils::ErrorCode::OK) {
             reset();
         }
         return connect_to_ap();
@@ -149,7 +151,7 @@ public:
         utils::logger.info("Connecting to AP...\n");
 
         // Check if already connected
-        auto res = send_command("AT+CWJAP_DEF?", "+CWJAP_DEF:\"" WIFI_AP "\"", buf, 10'000);
+        auto res = send_command("AT+CWJAP_DEF?", "+CWJAP_DEF:\"" WIFI_AP "\"", buf);
         bool correct_ap_connected = res == utils::ErrorCode::OK;
 
         if (correct_ap_connected) {
@@ -159,7 +161,7 @@ public:
 
         if (!correct_ap_connected) {
             disconnect_ap();
-            res = send_command("AT+CWJAP_DEF=\"" WIFI_AP "\",\"" WIFI_PASS "\"", "OK", buf, 10'000);
+            res = send_command("AT+CWJAP_DEF=\"" WIFI_AP "\",\"" WIFI_PASS "\"", "OK", buf);
             if (res == utils::ErrorCode::OK) {
                 ap_connected = true;
             } else {
@@ -208,15 +210,15 @@ public:
             send_raw(addr);
             send_raw("\",");
             send_raw(port);
-            if (send_command("", "OK", buf, 5000) == utils::ErrorCode::OK) {
+            if (send_command("", "OK", buf) == utils::ErrorCode::OK) {
                 connections++;
                 unsigned int id = 0; // Only 1 connection at a time supported for now
                 socket_connections[id] = true;
                 res = id;
             }
 
-            if ((send_command("AT+CIPMODE=1", "OK", buf, 5000) != utils::ErrorCode::OK)
-                || (send_command("AT+CIPSEND", "OK", buf, 5000) != utils::ErrorCode::OK)) {
+            if ((send_command("AT+CIPMODE=1", "OK", buf) != utils::ErrorCode::OK)
+                || (send_command("AT+CIPSEND", "OK", buf) != utils::ErrorCode::OK)) {
                 utils::logger.error("Failed to set ESP8266 to transparent mode!\n");
                 send_command_dont_care("AT+CIPCLOSE");
                 res = std::nullopt;
@@ -283,7 +285,7 @@ private:
     }
 
     [[nodiscard]] utils::ErrorCode send_command(std::string_view cmd, std::string_view ok_response,
-        std::span<volatile char> response_buf, unsigned int response_time_ms = 10'000) const
+        std::span<volatile char> response_buf, unsigned int response_time_ms = 1000) const
     {
         using namespace std::literals; // std::string_view literals
         // Enable usart interrupts

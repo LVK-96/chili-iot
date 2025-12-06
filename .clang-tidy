@@ -265,7 +265,7 @@ CheckOptions:
 
   cppcoreguidelines-avoid-magic-numbers.IgnoreBitFieldsWidths: 'true'
   cppcoreguidelines-avoid-magic-numbers.IgnorePowersOf2IntegerValues: 'true'
-  cppcoreguidelines-avoid-magic-numbers.IgnoredIntegerValues: '1;2;3;4;10000'
+  cppcoreguidelines-avoid-magic-numbers.IgnoredIntegerValues: '1;2;3;4;1000;10000'
   cppcoreguidelines-avoid-magic-numbers.IgnoredFloatingPointValues: '1.0;100.0;'
   cppcoreguidelines-avoid-magic-numbers.IgnoreAllFloatingPointValues: 'false'
 ...
