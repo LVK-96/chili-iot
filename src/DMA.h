@@ -56,7 +56,7 @@ public:
         BluePillDMAPeripheralWordSize peripheral_word_size, uint32_t memory_addr,
         BluePillDMAMemWordSize memory_word_size, BluePillDMAPriority priority, unsigned int number_of_data,
         bool increment_peripheral, bool increment_mem, bool transfer_error_interrupt, bool half_transfer_interrupt,
-        bool transfer_complete_interrupt) const;
+        bool transfer_complete_interrupt, bool circular_mode) const;
 
     void enable() const override;
     void disable() const override;

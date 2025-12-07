@@ -1,9 +1,13 @@
 #include "DMA.h"
 
+// No "dma_disable_circular_mode" function in libopencm3, let's just clear the bit manually
+static void dma_disable_circular_mode(uint32_t dma, uint8_t channel) { DMA_CCR(dma, channel) &= ~DMA_CCR_CIRC; }
+
 void DMA::setup_channel(DMADirection direction, BluePillDMAChannel channel, uint32_t peripheral_addr,
     BluePillDMAPeripheralWordSize peripheral_word_size, uint32_t memory_addr, BluePillDMAMemWordSize memory_word_size,
     BluePillDMAPriority priority, unsigned int number_of_data, bool increment_peripheral, bool increment_mem,
-    bool transfer_error_interrupt, bool half_transfer_interrupt, bool transfer_complete_interrupt) const
+    bool transfer_error_interrupt, bool half_transfer_interrupt, bool transfer_complete_interrupt,
+    bool circular_mode) const
 {
     auto const channel_uint8 = static_cast<uint8_t>(channel);
 
@@ -53,6 +57,12 @@ void DMA::setup_channel(DMADirection direction, BluePillDMAChannel channel, uint
         dma_enable_transfer_complete_interrupt(dma, channel_uint8);
     } else {
         dma_disable_transfer_complete_interrupt(dma, channel_uint8);
+    }
+
+    if (circular_mode) {
+        dma_enable_circular_mode(dma, channel_uint8);
+    } else {
+        dma_disable_circular_mode(dma, channel_uint8);
     }
 }
 
