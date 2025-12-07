@@ -279,22 +279,28 @@ private:
         }
 
         // Enable TX DMA with tx DMA from data
+        set_network_task_handle_for_interrupts(xTaskGetCurrentTaskHandle());
         usart->enable_tx_dma(
             reinterpret_cast<uintptr_t>(data.data()), data.size() * sizeof(std::ranges::range_value_t<T>));
 
-        // Wait for DMA transfer to complete (with timeout to prevent infinite loop)
-        bluepill::async_wait_ms(response_time_ms);
-        unsigned int timeout = 1000;
-        while (!usart->get_tx_dma_complete_flag() && timeout-- > 0) {
-            bluepill::async_wait_ms(response_time_ms);
+        // Yield task until 1. DMA transfer is complete or 2. timeout is reached
+        // The DMA interrupt will xTaskNotify() the task when the transfer is complete
+        xTaskNotifyWait(0, 0, nullptr, ms_to_ticks(response_time_ms));
+
+        // Transfer error
+        if (usart->get_tx_dma_error_flag()) {
+            // "Handle error" :D
+            utils::logger.error("USART TX DMA transfer error!\n");
         }
 
-        if (usart->get_tx_dma_error_flag() || timeout == 0) {
-            // "Handle error" :D
-            utils::logger.error("USART TX DMA: Failed to send data!\n");
+        // Timeout
+        if (!usart->get_tx_dma_complete_flag()) {
+            // "Handle" timeout :D
+            utils::logger.error("USART TX DMA transfer timeout!\n");
         }
 
         // Cleanup
+        set_network_task_handle_for_interrupts(nullptr);
         usart->disable_tx_dma();
     }
 

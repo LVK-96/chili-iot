@@ -12,6 +12,7 @@
 #include "USART.h"
 #include "interrupts.h"
 
+uint32_t ms_to_ticks(unsigned int ms) { return ms * portTICK_RATE_MS; }
 namespace bluepill {
 
 namespace peripherals {
@@ -151,9 +152,9 @@ void busy_wait(uint32_t ticks)
     } while (slept_ticks < ticks);
 }
 
-void busy_wait_ms(unsigned int ms) { busy_wait(ms * portTICK_RATE_MS); }
+void busy_wait_ms(unsigned int ms) { busy_wait(ms_to_ticks(ms)); }
 
 void async_wait(uint32_t ticks) { vTaskDelay(ticks); }
 
-void async_wait_ms(unsigned int ms) { async_wait(ms * portTICK_RATE_MS); }
+void async_wait_ms(unsigned int ms) { async_wait(ms_to_ticks(ms)); }
 }

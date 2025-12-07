@@ -38,11 +38,11 @@ void led_task([[maybe_unused]] void* a)
     constexpr auto blink_delay = pdMS_TO_TICKS(1000);
 
     auto args = static_cast<LedTaskArgs*>(a);
-    auto wake_time = xTaskGetTickCount();
     while (true) {
         // Blink the led
+        auto wake_time = xTaskGetTickCount();
         args->led->toggle();
-        vTaskDelayUntil(&wake_time, blink_delay);
+        xTaskDelayUntil(&wake_time, blink_delay);
     }
 }
 
@@ -57,15 +57,14 @@ void temperature_task(void* a)
     }
 
     auto args = static_cast<TemperatureTaskArgs*>(a);
-    auto wake_time = xTaskGetTickCount();
-    auto last_temperature = args->temperature->read();
     while (true) {
+        auto wake_time = xTaskGetTickCount();
+        auto temperature_reading = args->temperature->read();
         // Read & send temperature
-        if (last_temperature) {
-            xQueueSendToBack(args->measurement_queue, &(last_temperature.value()), 0);
+        if (temperature_reading) {
+            xQueueSendToBack(args->measurement_queue, &(temperature_reading.value()), 0);
         }
-        last_temperature = args->temperature->read();
-        vTaskDelayUntil(&wake_time, measurement_delay);
+        xTaskDelayUntil(&wake_time, measurement_delay);
     }
 }
 

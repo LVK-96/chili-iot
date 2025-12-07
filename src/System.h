@@ -14,6 +14,7 @@ class USARTWithDMA;
 class I2C;
 class DMA;
 
+uint32_t ms_to_ticks(unsigned int ms);
 namespace bluepill {
 
 enum class ErrorCode : uint8_t {
