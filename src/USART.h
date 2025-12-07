@@ -62,6 +62,7 @@ public:
     void rx_interrupt(bool set) const;
     void tx_interrupt(bool set) const;
     void error_interrupt(bool set) const;
+    void idle_line_received_interrupt(bool set) const;
     [[nodiscard]] bool get_is_setup() const;
 
 protected:

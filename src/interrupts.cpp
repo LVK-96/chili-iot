@@ -77,11 +77,21 @@ DMAISRFlags dma1_channel7_flags;
 void dma1_channel7_isr(void) { dma_channel_isr(DMA1, DMA_CHANNEL7, dma1_channel7_flags); }
 
 volatile std::atomic_bool usart2_overrun_error = false;
+volatile std::atomic_bool usart2_idle_line_received = false;
 void usart2_isr(void)
 {
-    if (((USART_CR3(USART2) & USART_CR3_EIE) != 0) && ((USART_SR(USART2) & USART_SR_ORE) != 0)) {
-        (void)USART2_DR;
-        usart_disable_error_interrupt(USART2);
+    bool overrun_error_interrupt
+        = ((USART_CR3(USART2) & USART_CR3_EIE) != 0) && ((USART_SR(USART2) & USART_SR_ORE) != 0);
+    bool idle_line_received_interrupt
+        = ((USART_CR1(USART2) & USART_CR1_IDLEIE) != 0) && ((USART_SR(USART2) & USART_SR_IDLE) != 0);
+
+    if (overrun_error_interrupt) {
+        USART_SR(USART2) &= ~USART_SR_ORE;
         usart2_overrun_error = true;
+    }
+
+    if (idle_line_received_interrupt) {
+        USART_SR(USART2) &= ~USART_SR_IDLE;
+        usart2_idle_line_received = true;
     }
 }

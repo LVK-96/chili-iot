@@ -62,6 +62,15 @@ void USART::error_interrupt(bool set) const
     }
 }
 
+void USART::idle_line_received_interrupt(bool set) const
+{
+    if (set) {
+        usart_enable_idle_interrupt(usart);
+    } else {
+        usart_disable_idle_interrupt(usart);
+    }
+}
+
 bool USART::get_is_setup() const { return is_setup; }
 
 void USARTWithDMA::enable_rx_dma(uint32_t dest_addr, unsigned int number_of_data) const
@@ -74,7 +83,7 @@ void USARTWithDMA::enable_rx_dma(uint32_t dest_addr, unsigned int number_of_data
         dest_addr,
         BluePillDMAMemWordSize::BYTE, // destination word size
         BluePillDMAPriority::VERY_HIGH, // priority
-        number_of_data, false, true, true, false, true);
+        number_of_data, false, true, true, false, true, false);
 
     usart_enable_rx_dma(usart);
     dma_channels.dma->enable(dma_channels.rx_channel.channel);
@@ -90,7 +99,7 @@ void USARTWithDMA::enable_tx_dma(uint32_t source_addr, unsigned int number_of_da
         source_addr,
         BluePillDMAMemWordSize::BYTE, // source word size
         BluePillDMAPriority::VERY_HIGH, // priority
-        number_of_data, false, true, true, false, true);
+        number_of_data, false, true, true, false, true, false);
 
     usart_enable_tx_dma(usart);
     dma_channels.dma->enable(dma_channels.tx_channel.channel);
