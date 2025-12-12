@@ -33,9 +33,9 @@ STUTIL           := $(shell which st-util)
 STDLIB_INCLUDE   := $(shell $(CXX) -xc++ /dev/null -E -Wp,-v 2>&1 | sed -n 's,^ ,,p' | xargs -I{} echo -I{})
 FP_FLAGS         := -msoft-float
 ARCH_FLAGS       := -mthumb -mcpu=cortex-m3 -mfix-cortex-m3-ldrd $(FP_FLAGS)
-OPT_FLAGS        := -Os -fno-exceptions -ffunction-sections -fdata-sections # False positives?
+OPT_FLAGS        := -O3 -fno-exceptions -ffunction-sections -fdata-sections # False positives?
 ANALYZER_FLAGS   := -fanalyzer -Wno-analyzer-possible-null-dereference -Wno-analyzer-use-of-uninitialized-value
-DEBUG_FLAGS      := # -g # uncomment this to get debug information for gdb
+DEBUG_FLAGS      := # -g -Og uncomment this to get debug information for gdb
 WFLAGS           := -Wall -Wextra -Werror
 DEFINES          := -DSTM32F1
 I_FLAGS          := -I$(OPENCM3_DIR)/include -I$(BME280_DIR) -I$(FREERTOS_DIR)/include -I$(FREERTOS_DIR)/portable/GCC/ARM_CM3 -Isrc $(STDLIB_INCLUDE)
