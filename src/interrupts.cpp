@@ -88,10 +88,10 @@ void usart2_isr(void)
     if (overrun_error_interrupt) {
         USART_SR(USART2) &= ~USART_SR_ORE;
         usart2_overrun_error = true;
-    }
-
-    if (idle_line_received_interrupt) {
-        USART_SR(USART2) &= ~USART_SR_IDLE;
-        usart2_idle_line_received = true;
-    }
+#include "Logger.h"
+void hard_fault_handler(void)
+{
+    utils::logger.error("HARD FAULT!!!\n");
+    while (true)
+        ;
 }

@@ -7,42 +7,69 @@ void Logger::set_verbosity(LogLevel new_verbosity) { verbosity = new_verbosity; 
 
 Logger::LogLevel Logger::get_verbosity() const { return verbosity; }
 
-void Logger::log(std::string_view msg, LogLevel level) const
+void Logger::log(std::string_view msg) const { _log(msg); }
+
+void Logger::_log_vprintf(LogLevel level, const char* fmt, va_list args) const
 {
     if (level >= verbosity) {
-        _log(msg);
+        constexpr unsigned int buffer_size = 256;
+        char buffer[buffer_size];
+
+        // Add log level prefix
+        const char* level_str = "";
+        switch (level) {
+        case LogLevel::INFO:
+            level_str = "INFO: ";
+            break;
+        case LogLevel::WARNING:
+            level_str = "WARNING: ";
+            break;
+        case LogLevel::ERROR:
+            level_str = "ERROR: ";
+            break;
+        case LogLevel::SILENT:
+            level_str = "";
+            break;
+        }
+
+        int written = snprintf(buffer, buffer_size, "%s", level_str);
+        if (written > 0 && written < (int)buffer_size) {
+            vsnprintf(buffer + written, buffer_size - written, fmt, args);
+        }
+        _log(std::string_view(buffer));
     }
 }
 
-void Logger::info(std::string_view msg) const
+void Logger::log(LogLevel level, const char* fmt, ...) const
 {
-    log("INFO: ", LogLevel::INFO);
-    log(msg, LogLevel::INFO);
+    va_list args;
+    va_start(args, fmt);
+    _log_vprintf(level, fmt, args);
+    va_end(args);
 }
 
-void Logger::warning(std::string_view msg) const
+void Logger::info(const char* fmt, ...) const
 {
-    log("WARNING: ", LogLevel::WARNING);
-    log(msg, LogLevel::WARNING);
+    va_list args;
+    va_start(args, fmt);
+    _log_vprintf(LogLevel::INFO, fmt, args);
+    va_end(args);
 }
 
-void Logger::error(std::string_view msg) const
+void Logger::warning(const char* fmt, ...) const
 {
-    log("ERROR: ", LogLevel::ERROR);
-    log(msg, LogLevel::ERROR);
+    va_list args;
+    va_start(args, fmt);
+    _log_vprintf(LogLevel::WARNING, fmt, args);
+    va_end(args);
 }
 
-void Logger::error(std::string_view msg, utils::ErrorCode code) const
+void Logger::error(const char* fmt, ...) const
 {
-    log("ERROR", LogLevel::ERROR);
-
-    constexpr unsigned int code_string_length = 7;
-    char code_buf[code_string_length + 1];
-    snprintf(code_buf, code_string_length, " (%hhu)", static_cast<uint8_t>(code));
-    log(code_buf, LogLevel::ERROR);
-
-    log(": ", LogLevel::ERROR);
-    log(msg, LogLevel::ERROR);
+    va_list args;
+    va_start(args, fmt);
+    _log_vprintf(LogLevel::ERROR, fmt, args);
+    va_end(args);
 }
 
 void USARTLogger::_log(std::string_view msg) const { usart->send_blocking(msg); }

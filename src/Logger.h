@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdarg>
+#include <cstdio>
 #include <string_view>
 
 #include "USART.h"
@@ -16,12 +18,17 @@ public:
     void set_verbosity(LogLevel verbosity);
     [[nodiscard]] LogLevel get_verbosity() const;
 
-    void log(std::string_view msg, LogLevel level = LogLevel::INFO) const;
+    // Simple log with string view
+    void log(std::string_view msg) const;
 
-    void info(std::string_view msg) const;
-    void warning(std::string_view msg) const;
-    void error(std::string_view msg) const;
-    void error(std::string_view msg, utils::ErrorCode code) const;
+    // Printf-style interface
+    void log(LogLevel level, const char* fmt, ...) const;
+    void info(const char* fmt, ...) const;
+    void warning(const char* fmt, ...) const;
+    void error(const char* fmt, ...) const;
+
+    // Internal printf helper
+    void _log_vprintf(LogLevel level, const char* fmt, va_list args) const;
 
 protected:
     LogLevel verbosity;
