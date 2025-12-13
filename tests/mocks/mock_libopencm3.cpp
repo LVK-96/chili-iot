@@ -268,10 +268,14 @@ uint16_t usart_recv_blocking(uint32_t usart)
     mock_usart_recv_blocking_count++;
     return 0;
 }
+void usart_enable_idle_interrupt(uint32_t usart) { (void)usart; }
+void usart_disable_idle_interrupt(uint32_t usart) { (void)usart; }
 void usart_enable_rx_interrupt(uint32_t usart) { (void)usart; }
 void usart_disable_rx_interrupt(uint32_t usart) { (void)usart; }
 void usart_enable_tx_interrupt(uint32_t usart) { (void)usart; }
 void usart_disable_tx_interrupt(uint32_t usart) { (void)usart; }
+void usart_enable_tx_complete_interrupt(uint32_t usart) { (void)usart; }
+void usart_disable_tx_complete_interrupt(uint32_t usart) { (void)usart; }
 void usart_enable_error_interrupt(uint32_t usart) { (void)usart; }
 void usart_disable_error_interrupt(uint32_t usart) { (void)usart; }
 uint32_t usart_get_flag(uint32_t usart, uint32_t flag)

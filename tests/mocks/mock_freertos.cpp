@@ -70,6 +70,7 @@ BaseType_t xTaskCreate_record(TaskFunction_t pxTaskCode, const char* const pcNam
 }
 
 void vTaskStartScheduler(void) { }
+TaskHandle_t xTaskGetCurrentTaskHandle(void) { return (TaskHandle_t)1; }
 
 BaseType_t xTaskNotify(TaskHandle_t xTaskToNotify, uint32_t ulValue, eNotifyAction eAction)
 {

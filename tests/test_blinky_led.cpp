@@ -9,7 +9,7 @@ TEST_CASE("GPIOLED construction and interface")
 
     SUBCASE("LED operations don't crash")
     {
-        // These operations call the mock GPIO functions
+        // These operations call the GPIO functions
         // We're just verifying the interface works without crashing
         led.on();
         led.off();

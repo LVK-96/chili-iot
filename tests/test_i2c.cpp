@@ -1,14 +1,17 @@
 #include "I2C.h"
 #include "doctest.h"
-#include "mock_libopencm3.h"
 #include "utils.h"
 
 #include <array>
 #include <span>
 
+#include "test_events.h"
+#include <algorithm>
+#include <vector>
+
 TEST_CASE("I2C basic operations")
 {
-    mock_libopencm3_reset();
+    test_event_clear();
 
     I2C i2c1(BluePillI2C::_1, RCC_I2C1, RST_I2C1);
 
@@ -32,8 +35,21 @@ TEST_CASE("I2C basic operations")
     uint8_t out = 0;
     CHECK(i2c1.read(0x76, out) == utils::ErrorCode::OK);
 
-    // The libopencm3 mock's i2c_transfer7 should have been invoked for each read/write call
-    CHECK(mock_i2c_calls.size() == 4);
-    CHECK(mock_i2c_calls.back().addr == 0x76);
-    CHECK(mock_i2c_calls.back().rlen == 1);
+    // The i2c_transfer7 should have been invoked for each read/write call
+    auto events = test_event_get_all();
+    std::vector<TestEvent> i2c_events;
+    std::copy_if(events.begin(), events.end(), std::back_inserter(i2c_events),
+        [](const TestEvent& e) { return e.type == TestEventType::I2CTransfer; });
+
+    CHECK(i2c_events.size() == 4);
+
+    // Check last event details (single byte read)
+    // Event data layout: [wlen, rlen, ...wdata]
+    if (!i2c_events.empty()) {
+        const auto& last = i2c_events.back();
+        CHECK(last.id == 0x76);
+        // rlen should be 1
+        CHECK(last.data.size() >= 2);
+        CHECK(last.data[1] == 1);
+    }
 }
