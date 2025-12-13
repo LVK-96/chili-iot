@@ -15,7 +15,10 @@ extern DMAISRFlags dma1_channel6_flags;
 extern DMAISRFlags dma1_channel7_flags;
 
 extern volatile std::atomic_bool usart2_overrun_error;
+extern volatile std::atomic_bool usart2_tx_transfer_complete;
 
 extern volatile std::atomic_uint32_t systick_counter;
 
-void set_network_task_handle_for_interrupts(TaskHandle_t task);
+void set_network_task_handle_for_tx_dma_interrupts(TaskHandle_t task);
+void set_network_task_handle_for_rx_dma_interrupts(TaskHandle_t task);
+void set_network_task_handle_for_usart2_interrupts(TaskHandle_t task);

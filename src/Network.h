@@ -62,82 +62,52 @@ public:
     void hard_reset() const override
     {
         utils::logger.info("Hard resetting ESP8266...\n");
-
         reset_pin->port->clear_pins(reset_pin->pin_nro);
-        bluepill::async_wait_ms(5000);
-
-        if constexpr (debug) {
-            // Enable usart interrupts
-            usart->error_interrupt(true);
-            // Enable usart DMA
-            usart->enable_rx_dma(reinterpret_cast<uintptr_t>(rx_buf.data()), rx_buf.size());
-
-            reset_pin->port->set_pins(reset_pin->pin_nro);
-            bluepill::async_wait_ms(reset_time); // Wait a bit so the ESP8266 has time to reset
-
-            // Disable DMA
-            usart->disable_rx_dma();
-            // Disable usart interrupts
-            usart->error_interrupt(false);
-            auto count = usart->get_dma_count();
-            unsigned read = rx_buf.size() - count; // Check how many bytes were received
-            const std::string_view sv { const_cast<char*>(rx_buf.data()), read };
-            utils::logger.info("Printing the received data (if any)...\n");
-            if (read > 0) {
-                utils::logger.log(sv);
-            }
-            utils::logger.log("\n");
-        } else {
-            reset_pin->port->set_pins(reset_pin->pin_nro);
-            bluepill::async_wait_ms(reset_time); // Wait a bit so the ESP8266 has time to reset
-        }
-
-        utils::logger.info("ESP8266 reset!\n");
+        bluepill::async_wait_ms(100);
+        reset_pin->port->set_pins(reset_pin->pin_nro);
+        bluepill::async_wait_ms(reset_time); // Wait a bit so the ESP8266 has time to reset
     }
 
     void reset() const override
     {
         utils::logger.info("Soft resetting ESP8266...\n");
-
-        if constexpr (debug) {
-            // Enable usart interrupts
-            usart->error_interrupt(true);
-            // Enable usart DMA
-            usart->enable_rx_dma(reinterpret_cast<uintptr_t>(rx_buf.data()), rx_buf.size());
-
-            send_raw(esp8266::commands::RESET);
-            bluepill::async_wait_ms(reset_time); // Wait a bit so the ESP8266 has time to reset
-
-            // Disable DMA
-            usart->disable_rx_dma();
-            // Disable usart interrupts
-            usart->error_interrupt(false);
-            auto count = usart->get_dma_count();
-            unsigned read = rx_buf.size() - count; // Check how many bytes were received
-            const std::string_view sv { const_cast<char*>(rx_buf.data()), read };
-            utils::logger.info("Printing the received data (if any)...\n");
-            if (read > 0) {
-                utils::logger.log(sv);
-            }
-            utils::logger.log("\n");
-        } else {
-            send_raw(esp8266::commands::RESET);
-            bluepill::async_wait_ms(reset_time); // Wait a bit so the ESP8266 has time to reset
-        }
-
-        utils::logger.info("ESP8266 reset!\n");
+        (void)send_command(esp8266::commands::RESET, "ready", reset_time);
     }
 
     utils::ErrorCode init() override
     {
+        // Circular buffer RX DMA setup
+        const std::function setup_rx_dma = [this] {
+            utils::logger.info("Enabling RX DMA\n");
+            old_rx_dma_count = rx_buf.size();
+            set_network_task_handle_for_rx_dma_interrupts(xTaskGetCurrentTaskHandle());
+            usart->error_interrupt(true);
+            usart->enable_rx_dma(reinterpret_cast<uintptr_t>(rx_buf.data()), rx_buf.size(), true, false, false, true);
+        };
+        // Echo AT commands off (default)
         std::function<utils::ErrorCode()> echo_on_or_off = [this] { return echo_off(); };
-        if (debug) {
+
+        // If we are debugging, enable command echo
+        if constexpr (debug) {
             echo_on_or_off = [this] { return echo_on(); };
         }
+
+        // Enable the rx dma already so we see the boot messages as well
+        setup_rx_dma();
+
         reset_pin->port->set_pins(reset_pin->pin_nro);
+        bluepill::async_wait_ms(reset_time); // Wait a bit so the ESP8266 has time to boot
+
+        // Enable the tx complete interrupt
+        usart->clear_tx_transfer_complete_flag();
+        set_network_task_handle_for_usart2_interrupts(xTaskGetCurrentTaskHandle());
+        usart->clear_sr_tc_bit(); // Clear the TC bit before we enable the interrupt
+        usart->tx_complete_interrupt(true);
+
         while (test_msg() != utils::ErrorCode::OK || echo_on_or_off() != utils::ErrorCode::OK) {
             reset();
         }
+
         return connect_to_ap();
     }
 
@@ -231,7 +201,6 @@ public:
     {
         if (ap_connected && socket_connected(id)) {
             send_raw(data);
-            bluepill::async_wait_ms(50);
             return utils::ErrorCode::OK;
         }
 
@@ -265,79 +234,127 @@ private:
     unsigned int connections = 0;
     std::array<bool, max_connections> socket_connections = { false };
 
+    mutable size_t old_rx_dma_count = 0;
     mutable std::array<volatile char, 2048> rx_buf {};
-    [[maybe_unused]] mutable std::array<volatile char, 2048> tx_buf {};
 
     bool socket_connected(unsigned int id) const { return (id < max_connections) && socket_connections[id]; }
 
     template <typename T>
         requires std::ranges::contiguous_range<T>
-    void send_raw(const T& data, unsigned int response_time_ms = 1000) const
+    void send_raw(const T& data, unsigned int timeout_ms = 10) const
     {
         if (std::ranges::size(data) == 0) {
             return;
         }
 
-        // Enable TX DMA with tx DMA from data
-        set_network_task_handle_for_interrupts(xTaskGetCurrentTaskHandle());
-        usart->enable_tx_dma(
-            reinterpret_cast<uintptr_t>(data.data()), data.size() * sizeof(std::ranges::range_value_t<T>));
+        // Enable TX DMA
+        // TODO: not thread safe, lock USART/TX DMA mutex
+        usart->enable_tx_dma(reinterpret_cast<uintptr_t>(data.data()),
+            data.size() * sizeof(std::ranges::range_value_t<T>), true, false, true);
 
-        // Yield task until 1. DMA transfer is complete or 2. timeout is reached
-        // The DMA interrupt will xTaskNotify() the task when the transfer is complete
-        xTaskNotifyWait(0, 0, nullptr, ms_to_ticks(response_time_ms));
+        // Yield task until 1. USART transfer is complete or 2. timeout is reached
+        // The USART interrupt will xTaskNotify() the task when the transfer is complete
+        auto const timeout = xTaskNotifyWait(0, 0, nullptr, ms_to_ticks(timeout_ms));
 
-        // Transfer error
+        // TODO: Handle errors
+        // DMA transfer error
         if (usart->get_tx_dma_error_flag()) {
-            // "Handle error" :D
             utils::logger.error("USART TX DMA transfer error!\n");
         }
-
-        // Timeout
-        if (!usart->get_tx_dma_complete_flag()) {
-            // "Handle" timeout :D
-            utils::logger.error("USART TX DMA transfer timeout!\n");
+        // Timeout, TX timeout is an error!
+        // It is possible that we timeout just before the transfer is complete
+        // -> if we just check the timeout flag we get a false positive error
+        // -> check if the transfer is complete flag is set to be sure
+        if (!usart->get_tx_transfer_complete_flag()) {
+            // The other way around should not happen:
+            // We don't timeout, but neither is the transfer complete...
+            if (timeout != pdFALSE) {
+                utils::logger.error("Timeout flag NOT set, but transfer is NOT complete. Is there a bug in the "
+                                    "interrupt handler?\n");
+            } else {
+                utils::logger.error("USART TX transfer timeout!\n");
+            }
         }
 
-        // Cleanup
-        set_network_task_handle_for_interrupts(nullptr);
+        // Cleanup, disable the TX DMA
         usart->disable_tx_dma();
+        usart->clear_tx_transfer_complete_flag();
+        // TODO: not thread safe, release the USART/DMA mutex
     }
 
     [[nodiscard]] utils::ErrorCode send_command(
         esp8266::ATCommand cmd, std::string_view ok_response, unsigned int response_time_ms = 1000) const
     {
         using namespace std::literals; // std::string_view literals
-        // Enable usart interrupts
-        usart->error_interrupt(true);
-        // Enable usart DMA
-        usart->enable_rx_dma(reinterpret_cast<uintptr_t>(rx_buf.data()), rx_buf.size());
+
+        // Don't stack allocate, the stack is too small to fit this
+        // Use a static buffer instead
+        static std::array<char, 2048> wrap_case_concat_buffer;
 
         // Send the command
         send_raw(cmd);
-        // Wait a bit for the response
-        bluepill::async_wait_ms(response_time_ms);
 
-        // Disable DMA
-        usart->disable_rx_dma();
-        // Disable usart interrupts
-        usart->error_interrupt(false);
+        // Now we wait for a response
+        // Yield task until timeout is reached, or we have an error
+        (void)xTaskNotifyWait(0, 0, nullptr, ms_to_ticks(response_time_ms));
+
+        auto res = utils::ErrorCode::OK;
+        // DMA transfer error
+        if (usart->get_rx_dma_error_flag()) {
+            // "Handle error" :D
+            utils::logger.error("USART RX DMA transfer error!\n");
+            res = utils::ErrorCode::NETWORK_RESPONSE_DMA_ERROR;
+        }
+        // UART overrun error
+        if (usart->get_overrun_error_flag()) {
+            utils::logger.error("USART RX DMA transfer overrun error!\n");
+            res = utils::ErrorCode::NETWORK_RESPONSE_OVERRUN_ERROR;
+        }
+        // Everything OK!
+        // // RX timeout is NOT an error condition
 
         // Check the response
-        auto res = utils::ErrorCode::OK;
         auto count = usart->get_dma_count();
-        unsigned read = rx_buf.size() - count; // Check how many bytes were received
-        const std::string_view sv { const_cast<char*>(rx_buf.data()), read };
-        if (!usart2_overrun_error) {
-            // Split respone by line by line, check if any of the lines contains the OK response
-            if (!(std::ranges::any_of(sv | std::views::lazy_split("\r\n"sv),
-                    [ok_response](auto const& line) { return !std::ranges::search(line, ok_response).empty(); }))) {
-                res = utils::ErrorCode::NETWORK_RESPONSE_NOT_OK_ERROR;
-            }
-        } else { // Overrun error happened, something went wrong
-            utils::logger.info(
-                "ESP8266 response caused an USART overrun error! Is the reponse rx_buffer big enough?\n");
-            res = utils::ErrorCode::NETWORK_RESPONSE_OVERRUN_ERROR;
+        // DMCNT counts down
+        bool wrapped = count > old_rx_dma_count;
+        // First new byte received, based on the previous last byte received
+        const size_t start_idx = rx_buf.size() - old_rx_dma_count;
+        // One past last new byte received or one past the last byte in the buffer if we wrapped
+        const size_t segment_end = rx_buf.size() - (wrapped ? 0 : count);
+
+        // These are only used in the wrapped case
+        const size_t wrapped_start_idx = 0;
+        // The last byte received in the wrapped case
+        const size_t wrapped_end_idx = wrapped ? rx_buf.size() - count : 0;
+
+        // How many bytes were received before the wrap
+        const unsigned int received_before_wrap = segment_end - start_idx;
+        // How many bytes were received after the wrap
+        const unsigned int received_after_wrap = wrapped_end_idx - wrapped_start_idx;
+        // How many bytes in total
+        const unsigned received = received_before_wrap + received_after_wrap; // Check how many bytes were received
+
+        std::string_view sv;
+        // TODO: Some fancy chaining of DMAs so that we don't need the CPU to copy the data?
+        if (wrapped) {
+            // Copy the bytes received before the wrap
+            std::copy(rx_buf.begin() + start_idx, rx_buf.end(), wrap_case_concat_buffer.begin());
+            // Copy the bytes received after the wrap
+            std::copy(rx_buf.begin(), rx_buf.begin() + wrapped_end_idx,
+                wrap_case_concat_buffer.begin() + received_before_wrap);
+            sv = std::string_view(const_cast<char*>(wrap_case_concat_buffer.data()), received);
+        } else {
+            // No wrap, just directly access the bytes received
+            sv = std::string_view(const_cast<char*>(rx_buf.data() + start_idx), received);
+        }
+
+        // Update the old rx dma count, so we know where we left off when the next DMA transfer starts
+        old_rx_dma_count = count;
+
+        // Split respone by line by line, check if any of the lines contains the OK response
+        if (!(std::ranges::any_of(sv | std::views::lazy_split("\r\n"sv),
+                [ok_response](auto const& line) { return !std::ranges::search(line, ok_response).empty(); }))) {
+            res = utils::ErrorCode::NETWORK_RESPONSE_NOT_OK_ERROR;
         }
 
         if constexpr (debug) {
@@ -347,7 +364,7 @@ private:
             } else {
                 utils::logger.info("Printing the received data (if any)...\n");
             }
-            if (read > 0) {
+            if (received > 0) {
                 utils::logger.log(sv);
             }
             utils::logger.log("\n");

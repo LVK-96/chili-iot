@@ -53,6 +53,15 @@ void USART::tx_interrupt(bool set) const
     }
 }
 
+void USART::tx_complete_interrupt(bool set) const
+{
+    if (set) {
+        usart_enable_tx_complete_interrupt(usart);
+    } else {
+        usart_disable_tx_complete_interrupt(usart);
+    }
+}
+
 void USART::error_interrupt(bool set) const
 {
     if (set) {
@@ -73,7 +82,8 @@ void USART::idle_line_received_interrupt(bool set) const
 
 bool USART::get_is_setup() const { return is_setup; }
 
-void USARTWithDMA::enable_rx_dma(uint32_t dest_addr, unsigned int number_of_data) const
+void USARTWithDMA::enable_rx_dma(uint32_t dest_addr, unsigned int number_of_data, bool error_interrupt,
+    bool half_interrupt, bool complete_interrupt, bool circular) const
 {
     reset_rx_dma();
     dma_channels.dma->setup_channel(DMADirection::PER2MEM,
@@ -83,13 +93,14 @@ void USARTWithDMA::enable_rx_dma(uint32_t dest_addr, unsigned int number_of_data
         dest_addr,
         BluePillDMAMemWordSize::BYTE, // destination word size
         BluePillDMAPriority::VERY_HIGH, // priority
-        number_of_data, false, true, true, false, true, false);
+        number_of_data, false, true, error_interrupt, half_interrupt, complete_interrupt, circular);
 
     usart_enable_rx_dma(usart);
     dma_channels.dma->enable(dma_channels.rx_channel.channel);
 }
 
-void USARTWithDMA::enable_tx_dma(uint32_t source_addr, unsigned int number_of_data) const
+void USARTWithDMA::enable_tx_dma(uint32_t source_addr, unsigned int number_of_data, bool error_interrupt,
+    bool half_interrupt, bool complete_interrupt) const
 {
     reset_tx_dma();
     dma_channels.dma->setup_channel(DMADirection::MEM2PER,
@@ -99,8 +110,9 @@ void USARTWithDMA::enable_tx_dma(uint32_t source_addr, unsigned int number_of_da
         source_addr,
         BluePillDMAMemWordSize::BYTE, // source word size
         BluePillDMAPriority::VERY_HIGH, // priority
-        number_of_data, false, true, true, false, true, false);
+        number_of_data, false, true, error_interrupt, half_interrupt, complete_interrupt, false);
 
+    USART_SR(usart) &= ~USART_SR_TC;
     usart_enable_tx_dma(usart);
     dma_channels.dma->enable(dma_channels.tx_channel.channel);
 }

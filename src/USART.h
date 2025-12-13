@@ -8,6 +8,7 @@
 
 #include "DMA.h"
 #include "Peripheral.h"
+#include "interrupts.h"
 
 enum class BluePillUSART : uint32_t { _1 = USART1, _2 = USART2, _3 = USART3 };
 
@@ -35,9 +36,12 @@ enum class USARTFlowControl : uint32_t {
 
 class USART : public Peripheral {
 public:
-    constexpr USART(BluePillUSART usart, rcc_periph_clken clken, rcc_periph_rst rst) noexcept
+    constexpr USART(BluePillUSART usart, rcc_periph_clken clken, rcc_periph_rst rst,
+        volatile std::atomic_bool* overrun_error, volatile std::atomic_bool* tx_transfer_complete) noexcept
         : Peripheral(clken, rst)
         , usart(static_cast<uint32_t>(usart))
+        , overrun_error(overrun_error)
+        , tx_transfer_complete(tx_transfer_complete)
     {
     }
 
@@ -61,15 +65,22 @@ public:
     [[nodiscard]] uint16_t recieve() const;
     void rx_interrupt(bool set) const;
     void tx_interrupt(bool set) const;
+    void tx_complete_interrupt(bool set) const;
     void error_interrupt(bool set) const;
     void idle_line_received_interrupt(bool set) const;
     [[nodiscard]] bool get_is_setup() const;
+    [[nodiscard]] bool get_overrun_error_flag() const { return *overrun_error; }
+    [[nodiscard]] bool get_tx_transfer_complete_flag() const { return *tx_transfer_complete; }
+    void clear_overrun_error_flag() const { *overrun_error = false; }
+    void clear_tx_transfer_complete_flag() const { *tx_transfer_complete = false; }
 
 protected:
     uint32_t usart;
 
 private:
     bool is_setup = false;
+    volatile std::atomic_bool* overrun_error;
+    volatile std::atomic_bool* tx_transfer_complete;
 };
 
 struct DMAChannelAndFlags {
@@ -87,25 +98,32 @@ struct USARTDMA {
 
 class USARTWithDMA final : public USART {
 public:
-    constexpr USARTWithDMA(
-        BluePillUSART usart, rcc_periph_clken clken, rcc_periph_rst rst, const USARTDMA& dma_channels) noexcept
-        : USART(usart, clken, rst)
+    constexpr USARTWithDMA(BluePillUSART usart, rcc_periph_clken clken, rcc_periph_rst rst,
+        volatile std::atomic_bool* overrun_error_flag, volatile std::atomic_bool* tx_transfer_complete_flag,
+        const USARTDMA& dma_channels) noexcept
+        : USART(usart, clken, rst, overrun_error_flag, tx_transfer_complete_flag)
         , dma_channels(dma_channels)
     {
     }
 
-    void enable_rx_dma(uint32_t dest_addr, unsigned int number_of_data) const;
-    void enable_tx_dma(uint32_t source_addr, unsigned int number_of_data) const;
+    void enable_rx_dma(uint32_t dest_addr, unsigned int number_of_data, bool error_interrupt, bool half_interrupt,
+        bool complete_interrupt, bool circular) const;
+    void enable_tx_dma(uint32_t source_addr, unsigned int number_of_data, bool error_interrupt, bool half_interrupt,
+        bool complete_interrupt) const;
     void disable_rx_dma() const;
     void disable_tx_dma() const;
     void reset_rx_dma() const;
     void reset_tx_dma() const;
     [[nodiscard]] unsigned int get_dma_count() const;
-
-    [[nodiscard]] bool get_rx_dma_complete_flag() const { return *dma_channels.rx_channel.complete_flag; }
-    [[nodiscard]] bool get_tx_dma_complete_flag() const { return *dma_channels.tx_channel.complete_flag; }
-    [[nodiscard]] bool get_rx_dma_error_flag() const { return *dma_channels.rx_channel.error_flag; }
-    [[nodiscard]] bool get_tx_dma_error_flag() const { return *dma_channels.tx_channel.error_flag; }
+    [[nodiscard]] bool get_rx_dma_complete_flag() const { return *(dma_channels.rx_channel.complete_flag); }
+    [[nodiscard]] bool get_tx_dma_complete_flag() const { return *(dma_channels.tx_channel.complete_flag); }
+    [[nodiscard]] bool get_rx_dma_error_flag() const { return *(dma_channels.rx_channel.error_flag); }
+    [[nodiscard]] bool get_tx_dma_error_flag() const { return *(dma_channels.tx_channel.error_flag); }
+    void clear_rx_dma_complete_flag() const { *(dma_channels.rx_channel.complete_flag) = false; }
+    void clear_tx_dma_complete_flag() const { *(dma_channels.tx_channel.complete_flag) = false; }
+    void clear_rx_dma_error_flag() const { *(dma_channels.rx_channel.error_flag) = false; }
+    void clear_tx_dma_error_flag() const { *(dma_channels.tx_channel.error_flag) = false; }
+    void clear_sr_tc_bit() const { USART_SR(usart) &= ~USART_SR_TC; }
 
 private:
     USARTDMA dma_channels;

@@ -21,7 +21,9 @@
 
 static void setup_network(Network& network)
 {
+    utils::logger.info("Setting up network\n");
     while (network.init() != utils::ErrorCode::OK) {
+        utils::logger.error("Failed to initialize network\n");
         ;
     }
 }
@@ -33,7 +35,7 @@ static void setup_temperature(const TemperatureSensor& temperature)
     }
 }
 
-void led_task([[maybe_unused]] void* a)
+void led_task(void* a)
 {
     constexpr auto blink_delay = pdMS_TO_TICKS(1000);
 
@@ -89,6 +91,9 @@ void network_task(void* a)
             utils::logger.info("Sending reading...\n");
             std::ignore = sock.send({ reinterpret_cast<std::byte*>(&reading), sizeof(reading) });
             utils::logger.info("Reading sent!\n");
+            // Wait a bit, we get a new reading every 10 seconds
+            // So we will have plenty of time to clear any build up in the queue
+            bluepill::async_wait_ms(50);
         }
     }
 }

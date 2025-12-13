@@ -22,11 +22,17 @@ namespace peripherals {
     GPIOPin led_pin { LED_PIN_NRO, &gpio_c };
     GPIOPin esp_reset_pin { ESP_RESET_PIN_NRO, &gpio_c };
     DMA dma1 { BluePillDMAController::_1, RCC_DMA1 }; // DMA peripherals don't have reset bits in RCC CSRs
-    USART usart1 { BluePillUSART::_1, RCC_USART1, RST_USART1 };
+    // Usart 1 for the logger does not have overrun error or transfer complete flags
+    // We don't care if those happen or not
+    USART usart1 { BluePillUSART::_1, RCC_USART1, RST_USART1, static_cast<std::atomic_bool*>(nullptr),
+        static_cast<std::atomic_bool*>(nullptr) };
+    // Usart 2 for the network interface does have overrun error and transfer complete flags
     USARTWithDMA usart2 {
         BluePillUSART::_2,
         RCC_USART2,
         RST_USART2,
+        &usart2_overrun_error,
+        &usart2_tx_transfer_complete,
         { .dma = &dma1,
           .rx_channel = {
             .channel = BluePillDMAChannel::_6,

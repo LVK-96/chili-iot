@@ -1,4 +1,6 @@
 #include <atomic>
+#include <cstdio>
+#include <functional>
 
 #include <FreeRTOS.h>
 #include <task.h>
@@ -8,6 +10,7 @@
 #include <libopencm3/stm32/dma.h>
 #include <libopencm3/stm32/usart.h>
 
+#include "Logger.h"
 #include "interrupts.h"
 
 static bool get_dma_interrupt_flag(uint32_t dma, uint8_t channel, uint32_t flag)
@@ -30,7 +33,15 @@ static bool get_dma_error_interrupt_enable_flag(uint32_t dma, uint8_t channel)
     return get_dma_interrupt_flag(dma, channel, DMA_CCR_TEIE);
 }
 
-static TaskHandle_t network_task = nullptr;
+// Not quite sure why these would ever be different tasks, but just in case :D
+namespace {
+TaskHandle_t network_tx_dma_task = nullptr;
+TaskHandle_t network_rx_dma_task = nullptr;
+TaskHandle_t network_usart2_task = nullptr;
+}
+void set_network_task_handle_for_tx_dma_interrupts(TaskHandle_t task) { network_tx_dma_task = task; }
+void set_network_task_handle_for_rx_dma_interrupts(TaskHandle_t task) { network_rx_dma_task = task; }
+void set_network_task_handle_for_usart2_interrupts(TaskHandle_t task) { network_usart2_task = task; }
 
 static void dma_channel_isr(uint32_t dma, uint8_t channel, DMAISRFlags& flags)
 {
@@ -41,9 +52,19 @@ static void dma_channel_isr(uint32_t dma, uint8_t channel, DMAISRFlags& flags)
     bool const transfer_complete_interrupt
         = dma_get_interrupt_flag(dma, channel, DMA_TCIF) && get_dma_complete_interrupt_enable_flag(dma, channel);
 
+    BaseType_t higher_prio_task_woken = pdFALSE;
+
+    std::function notify_network_task = [channel, &higher_prio_task_woken](TaskHandle_t task) {
+        if (task != nullptr && channel == DMA_CHANNEL7) {
+            xTaskNotifyFromISR(task, 0, eNoAction, &higher_prio_task_woken);
+        }
+    };
+
     if (transfer_error_interrupt) {
         dma_clear_interrupt_flags(dma, channel, DMA_TEIF);
         flags.dma_error = true;
+        notify_network_task(network_rx_dma_task);
+        notify_network_task(network_tx_dma_task);
     }
 
     if (half_interrupt) {
@@ -53,20 +74,11 @@ static void dma_channel_isr(uint32_t dma, uint8_t channel, DMAISRFlags& flags)
 
     if (transfer_complete_interrupt) {
         dma_clear_interrupt_flags(dma, channel, DMA_TCIF);
-        dma_disable_channel(dma, channel);
-
-        // Notify the network task that a TX DMA transfer is complete
-        if (network_task != nullptr && channel == DMA_CHANNEL7) {
-            BaseType_t higher_prio_task_woken = pdFALSE;
-            xTaskNotifyFromISR(network_task, 0, eNoAction, &higher_prio_task_woken);
-            portYIELD_FROM_ISR(higher_prio_task_woken);
-        }
-
         flags.dma_complete = true;
     }
-}
 
-void set_network_task_handle_for_interrupts(TaskHandle_t task) { network_task = task; }
+    portYIELD_FROM_ISR(higher_prio_task_woken);
+}
 
 // USART2 Rx DMA1 channel 6
 DMAISRFlags dma1_channel6_flags;
@@ -77,18 +89,39 @@ DMAISRFlags dma1_channel7_flags;
 void dma1_channel7_isr(void) { dma_channel_isr(DMA1, DMA_CHANNEL7, dma1_channel7_flags); }
 
 volatile std::atomic_bool usart2_overrun_error = false;
-volatile std::atomic_bool usart2_idle_line_received = false;
+volatile std::atomic_bool usart2_tx_transfer_complete = false;
+
 void usart2_isr(void)
 {
     bool overrun_error_interrupt
         = ((USART_CR3(USART2) & USART_CR3_EIE) != 0) && ((USART_SR(USART2) & USART_SR_ORE) != 0);
-    bool idle_line_received_interrupt
-        = ((USART_CR1(USART2) & USART_CR1_IDLEIE) != 0) && ((USART_SR(USART2) & USART_SR_IDLE) != 0);
+    bool transfer_complete_interrupt
+        = ((USART_CR1(USART2) & USART_CR1_TCIE) != 0) && ((USART_SR(USART2) & USART_SR_TC) != 0);
+
+    BaseType_t higher_prio_task_woken = pdFALSE;
 
     if (overrun_error_interrupt) {
         USART_SR(USART2) &= ~USART_SR_ORE;
         usart2_overrun_error = true;
-#include "Logger.h"
+        if (network_usart2_task != nullptr) {
+            xTaskNotifyFromISR(network_usart2_task, 0, eNoAction, &higher_prio_task_woken);
+        }
+    }
+
+    if (transfer_complete_interrupt) {
+        // Clear the TC bit in DMA transmit mode
+        if (USART_CR3(USART2) & USART_CR3_DMAT) {
+            USART_SR(USART2) &= ~USART_SR_TC;
+        }
+        usart2_tx_transfer_complete = true;
+        if (network_usart2_task != nullptr) {
+            xTaskNotifyFromISR(network_usart2_task, 0, eNoAction, &higher_prio_task_woken);
+        }
+    }
+
+    portYIELD_FROM_ISR(higher_prio_task_woken);
+}
+
 void hard_fault_handler(void)
 {
     utils::logger.error("HARD FAULT!!!\n");
