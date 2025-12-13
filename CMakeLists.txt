@@ -4,9 +4,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 project(chili-iot C CXX ASM)
 add_compile_definitions(STM32F1)
 
-# Determine build mode based on Cross-Compiling status
-# Note: CMAKE_CROSS_COMPILING might require explicit CMAKE_SYSTEM_PROCESSOR or other checks, 
-# but CMAKE_SYSTEM_NAME is reliable here: 'Generic' = Firmware, 'Linux' (or other) = Host.
+# Determine build mode based on CMAKE_SYSTEM_NAME
+# 'Generic' = Firmware (cross-compile), 'Linux' = Host (tests)
 if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
     # Cross build -> Default to Firmware
     set(CHILI_BUILD_TESTS OFF)
@@ -21,21 +20,13 @@ include(cmake/setup_secrets.cmake)
 include(cmake/dev_helpers.cmake)
 
 # --- Dependencies ---
-# We delegate dependency definitions and custom build logic to separate files
 if(NOT CHILI_BUILD_TESTS)
-    include(cmake/freertos.cmake) # Handles FetchContent logic for FreeRTOS + others (since I moved FetchContent_MakeAvailable there? No, wait)
-    # FreeRTOS Kernel target (from FetchContent) uses the 'freertos_kernel' library
-    # We need to link it to our config
-    # Note: The official FreeRTOS CMake creates a 'freertos_kernel' target.
-    # Check what libraries it exposes. Usually 'freertos_kernel'.
+    include(cmake/freertos.cmake)
 
     # --- Main Firmware ---
 
     # Collect source files
     file(GLOB_RECURSE SRC_FILES "src/*.cpp")
-    
-    # Exclude files that might be problematic or test-related if any
-    # Note: src/main.cpp is our entry point
 
     add_executable(sensor_node ${SRC_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/stm32f103c8t6.ld)
 
@@ -137,8 +128,6 @@ if(CHILI_BUILD_TESTS)
 endif()
 
 # --- MQTT Broker (Universal) ---
-# Target to run the test MQTT broker
-# Check for virtual environment Python first, fall back to system python3
 if(EXISTS "${CMAKE_SOURCE_DIR}/.venv/bin/python3")
     set(VENV_PYTHON "${CMAKE_SOURCE_DIR}/.venv/bin/python3")
     add_custom_target(mqtt-broker

@@ -27,10 +27,7 @@ target_include_directories(runner PRIVATE
     ${doctest_SOURCE_DIR}/doctest 
 )
 
-# We need access to doctest
-# FetchContent made 'doctest::doctest' available?
-# Depending on doctest version/CMake, sometimes it's just 'doctest' or 'doctest::doctest'
-# find_package(doctest REQUIRED) # Provided by FetchContent in root
+
 
 target_link_libraries(runner PRIVATE 
     doctest::doctest
