@@ -1,5 +1,14 @@
 bashlex==0.18
-click==8.1.7
+black==25.12.0
+click==8.3.1
 compiledb==0.10.7
+librt==0.7.3
+mypy==1.19.0
+mypy_extensions==1.1.0
+packaging==25.0
+pathspec==0.12.1
+platformdirs==4.5.1
 pyserial==3.5
+pytokens==0.3.0
 shutilwhich==1.1.0
+typing_extensions==4.15.0
