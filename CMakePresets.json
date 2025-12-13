@@ -1,0 +1,48 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 20,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "default",
+            "displayName": "Default Config",
+            "description": "Base configuration",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "FETCHCONTENT_BASE_DIR": "${sourceDir}/deps"
+            }
+        },
+        {
+            "name": "stm32",
+            "displayName": "Firmware (STM32)",
+            "description": "Cross-compile for STM32F103",
+            "inherits": "default",
+            "binaryDir": "${sourceDir}/build/stm32",
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/arm-none-eabi-toolchain.cmake",
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "target",
+            "displayName": "Alias for stm32",
+            "description": "Alias for stm32",
+            "inherits": "stm32"
+        },
+        {
+            "name": "host",
+            "displayName": "Tests (Host)",
+            "description": "Build tests on Host",
+            "inherits": "default",
+            "binaryDir": "${sourceDir}/build/host",
+            "cacheVariables": {
+                "CHILI_BUILD_TESTS": "ON",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        }
+    ]
+}

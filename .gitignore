@@ -38,6 +38,9 @@
 build
 lib
 
+# Dependencies
+deps/
+
 # VScode
 .vscode
 

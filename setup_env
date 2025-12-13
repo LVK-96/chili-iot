@@ -4,7 +4,11 @@
 python -m venv .venv
 . .venv/bin/activate
 pip install -r requirements.txt
-pip install -r dev_requirements.txt
+
 
 # Setup compile_commands.json for clang-tidy
-make compile_commands.json
+# Prefer Ninja if available
+if command -v ninja >/dev/null 2>&1; then
+    export CMAKE_GENERATOR="Ninja"
+fi
+
