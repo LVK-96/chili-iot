@@ -10,7 +10,7 @@ An embedded IoT sensor node project for STM32F103C8T6 (Blue Pill) featuring Free
 
 ## Dependencies
 
-### System Packages
+### System Packages (Debian/Ubuntu)
 
 ```bash
 # Toolchain and build tools
@@ -42,7 +42,18 @@ The following are automatically downloaded via CMake `FetchContent`:
 ### Python Dependencies
 
 ```bash
+# Create and activate virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
+```
+
+Or simply use the setup script:
+
+```bash
+source setup_env
 ```
 
 ## Quick Start
@@ -98,6 +109,7 @@ This project uses **CMake Presets** for configuration:
 
 | Target | Description |
 |--------|-------------|
+| `mqtt-broker` | Run MQTT test broker on port 1883 |
 | `udp-server` | Run UDP test server script |
 | `style-check` | Check code formatting (requires clang-format) |
 | `style-fix` | Auto-fix code formatting |
