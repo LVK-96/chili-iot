@@ -18,7 +18,7 @@ add_executable(runner
     ${PROJ_SRCS}
 )
 
-target_compile_features(runner PRIVATE cxx_std_20)
+target_compile_features(runner PRIVATE cxx_std_23)
 
 target_include_directories(runner PRIVATE
     ${CMAKE_SOURCE_DIR}/src

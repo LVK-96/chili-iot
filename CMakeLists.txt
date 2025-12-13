@@ -39,8 +39,8 @@ if(NOT CHILI_BUILD_TESTS)
 
     add_executable(sensor_node ${SRC_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/stm32f103c8t6.ld)
 
-    # Compile options for C++20
-    target_compile_features(sensor_node PRIVATE cxx_std_20)
+    # Compile options for C++23
+    target_compile_features(sensor_node PRIVATE cxx_std_23)
 
     # Include directories
     target_include_directories(sensor_node PRIVATE 
