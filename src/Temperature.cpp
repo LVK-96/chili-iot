@@ -29,21 +29,20 @@ std::optional<double> BME280TemperatureSensor::read() const
         utils::logger.error("Failed to read temperature!\n");
         return std::nullopt;
     }
-    utils::logger.info("BME280 read!\n");
-    printf("Temperatue: %d\n", static_cast<int>(read_data.temperature));
+    utils::logger.info("BME280 read, temperatue: %d!\n", static_cast<int>(read_data.temperature));
     return read_data.temperature;
 }
 
-void BME280TemperatureSensor::write_reg(uint8_t addr, std::span<const uint8_t> data) const
+void BME280TemperatureSensor::write_reg(const uint8_t addr, std::span<const uint8_t> data) const
 {
     // Write BME280 register file @addr
-    std::ignore = i2c->write(bme280_addr, addr);
+    std::ignore = i2c->write(bme280_addr, std::span<const uint8_t>(&addr, 1));
     std::ignore = i2c->write(bme280_addr, data);
 }
 
-void BME280TemperatureSensor::read_reg(uint8_t addr, std::span<uint8_t> data) const
+void BME280TemperatureSensor::read_reg(const uint8_t addr, std::span<uint8_t> data) const
 {
     // Read BME280 register file @addr
-    std::ignore = i2c->write(bme280_addr, addr);
+    std::ignore = i2c->write(bme280_addr, std::span<const uint8_t>(&addr, 1));
     std::ignore = i2c->read(bme280_addr, data);
 }

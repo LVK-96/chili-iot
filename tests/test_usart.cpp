@@ -5,6 +5,7 @@
 #include <array>
 #include <atomic> // Keep this as std::atomic_bool is still used in the second test case
 #include <cstdint>
+#include <string>
 #include <vector>
 
 #include "test_events.h"
@@ -23,10 +24,10 @@ TEST_CASE("USART basic operations")
 
     // Send generic bytes
     std::string msg = "abc";
-    usart2.send_blocking(std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(msg.data()), msg.size()));
+    usart2.send_blocking(std::as_bytes(std::span(msg)));
 
     // Send single byte
-    std::array<const uint8_t, 1> d = { 'd' };
+    std::byte d { 'd' };
     usart2.send_blocking(d);
 
     // Check for UsartTx event

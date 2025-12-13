@@ -37,13 +37,13 @@ protected:
 
 class USARTLogger final : public Logger {
 public:
-    constexpr USARTLogger(LogLevel verbosity, const USART* usart) noexcept
+    constexpr USARTLogger(LogLevel verbosity, const ISerial* usart) noexcept
         : Logger(verbosity)
         , usart(usart)
     {
     }
 
 private:
-    const USART* usart;
+    const ISerial* usart;
     void _log(std::string_view msg) const override;
 };

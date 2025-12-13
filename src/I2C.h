@@ -7,13 +7,14 @@
 #include <libopencm3/stm32/rcc.h>
 
 #include "Peripheral.h"
+#include "interfaces/II2C.h"
 #include "utils.h"
 
 class Logger;
 
 enum class BluePillI2C : unsigned int { _1 = I2C1, _2 = I2C2 };
 
-class I2C final : public Peripheral {
+class I2C final : public Peripheral, public II2C {
 public:
     constexpr I2C(BluePillI2C i2c_dev, rcc_periph_clken clken, rcc_periph_rst rst) noexcept
         : Peripheral(clken, rst)
@@ -23,8 +24,8 @@ public:
     void disable() const override;
     void enable() const override;
     void setup() const;
-    [[nodiscard]] utils::ErrorCode read(uint8_t addr, std::span<uint8_t> data) const;
-    [[nodiscard]] utils::ErrorCode write(uint8_t addr, std::span<const uint8_t> data) const;
+    [[nodiscard]] utils::ErrorCode read(uint8_t addr, std::span<uint8_t> data) const override;
+    [[nodiscard]] utils::ErrorCode write(uint8_t addr, std::span<const uint8_t> data) const override;
     utils::ErrorCode read(uint8_t addr, uint8_t& data) const;
     [[nodiscard]] utils::ErrorCode write(uint8_t addr, uint8_t data) const;
 

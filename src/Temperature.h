@@ -9,6 +9,7 @@
 #include "I2C.h"
 #include "Logger.h"
 #include "System.h"
+#include "interfaces/II2C.h"
 
 class TemperatureSensor {
 public:
@@ -20,7 +21,7 @@ enum class BME280I2CBusAddr : uint8_t { PRIMARY = BME280_I2C_ADDR_PRIM, SECONDAR
 
 class BME280TemperatureSensor final : public TemperatureSensor {
 public:
-    constexpr BME280TemperatureSensor(const I2C* i2c, BME280I2CBusAddr bme280_addr) noexcept
+    constexpr BME280TemperatureSensor(const II2C* i2c, BME280I2CBusAddr bme280_addr) noexcept
         : i2c(i2c)
         , bme280_addr(static_cast<uint8_t>(bme280_addr))
         , bme280({ .chip_id = BME280_I2C_ADDR_SEC,
@@ -36,12 +37,12 @@ public:
 
     utils::ErrorCode init() const override;
     std::optional<double> read() const override;
-    void write_reg(uint8_t addr, std::span<const uint8_t> data) const;
-    void read_reg(uint8_t addr, std::span<uint8_t> data) const;
+    void write_reg(const uint8_t addr, std::span<const uint8_t> data) const;
+    void read_reg(const uint8_t addr, std::span<uint8_t> data) const;
 
 private:
     const Logger* logger;
-    const I2C* i2c;
+    const II2C* i2c;
     uint8_t bme280_addr;
     mutable struct bme280_dev bme280;
 

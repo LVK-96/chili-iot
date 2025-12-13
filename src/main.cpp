@@ -4,6 +4,7 @@
 #include <queue.h>
 #include <task.h>
 
+#include "FreeRTOSAdapter.h"
 #include "RTOSTasks.h"
 #include "System.h"
 
@@ -20,8 +21,9 @@ int main()
     // Temperature sensor, network interface & blinking LED
     auto temperature = std::make_unique<BME280TemperatureSensor>(&bluepill::peripherals::i2c1,
         BME280I2CBusAddr::SECONDARY); // The Waveshare BME280 module defaults to the secondary I2C address (0x77)
-    auto network
-        = std::make_unique<ESP8266Network>(&bluepill::peripherals::usart2, &bluepill::peripherals::esp_reset_pin);
+    auto rtos = std::make_unique<FreeRTOSAdapter>();
+    auto network = std::make_unique<ESP8266Network>(
+        &bluepill::peripherals::usart2, &bluepill::peripherals::esp_reset_pin, rtos.get());
     auto led = std::make_unique<GPIOLED>(&bluepill::peripherals::led_pin);
 
     // Build the argument structs for the tasks

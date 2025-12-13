@@ -1,14 +1,17 @@
 #pragma once
 
 #include <atomic>
-#include <ranges>
+
+#include <span>
 
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/usart.h>
 
+#include "interfaces/IDmaSerial.h"
+#include "interfaces/ISerial.h"
+
 #include "DMA.h"
 #include "Peripheral.h"
-#include "interrupts.h"
 
 enum class BluePillUSART : uint32_t { _1 = USART1, _2 = USART2, _3 = USART3 };
 
@@ -34,7 +37,7 @@ enum class USARTFlowControl : uint32_t {
     RTS_CTS = USART_FLOWCONTROL_RTS_CTS
 };
 
-class USART : public Peripheral {
+class USART : public Peripheral, public ISerial {
 public:
     constexpr USART(BluePillUSART usart, rcc_periph_clken clken, rcc_periph_rst rst,
         volatile std::atomic_bool* overrun_error, volatile std::atomic_bool* tx_transfer_complete) noexcept
@@ -55,10 +58,12 @@ public:
         USARTFlowControl flowcontrol);
     void disable() const override;
     void enable() const override;
-    template <std::ranges::range R> void send_blocking(R&& range) const
+
+    using ISerial::send_blocking;
+    void send_blocking(std::span<const std::byte> data) const override
     {
-        for (const auto& byte : std::forward<R>(range)) {
-            usart_send_blocking(usart, byte);
+        for (const auto& byte : data) {
+            usart_send_blocking(usart, static_cast<uint16_t>(byte));
         }
     }
     [[nodiscard]] uint16_t recieve_blocking() const;
@@ -96,7 +101,7 @@ struct USARTDMA {
     DMAChannelAndFlags tx_channel;
 };
 
-class USARTWithDMA final : public USART {
+class USARTWithDMA final : public USART, public IDmaSerial {
 public:
     constexpr USARTWithDMA(BluePillUSART usart, rcc_periph_clken clken, rcc_periph_rst rst,
         volatile std::atomic_bool* overrun_error_flag, volatile std::atomic_bool* tx_transfer_complete_flag,
@@ -119,11 +124,21 @@ public:
     [[nodiscard]] bool get_tx_dma_complete_flag() const { return *(dma_channels.tx_channel.complete_flag); }
     [[nodiscard]] bool get_rx_dma_error_flag() const { return *(dma_channels.rx_channel.error_flag); }
     [[nodiscard]] bool get_tx_dma_error_flag() const { return *(dma_channels.tx_channel.error_flag); }
-    void clear_rx_dma_complete_flag() const { *(dma_channels.rx_channel.complete_flag) = false; }
-    void clear_tx_dma_complete_flag() const { *(dma_channels.tx_channel.complete_flag) = false; }
-    void clear_rx_dma_error_flag() const { *(dma_channels.rx_channel.error_flag) = false; }
-    void clear_tx_dma_error_flag() const { *(dma_channels.tx_channel.error_flag) = false; }
-    void clear_sr_tc_bit() const { USART_SR(usart) &= ~USART_SR_TC; }
+    void clear_rx_dma_complete_flag() const override { *(dma_channels.rx_channel.complete_flag) = false; }
+    void clear_tx_dma_complete_flag() const override { *(dma_channels.tx_channel.complete_flag) = false; }
+
+    // IDmaSerial implementation (forwarding to USART or local methods)
+    void tx_complete_interrupt(bool set) const override { USART::tx_complete_interrupt(set); }
+    void error_interrupt(bool set) const override { USART::error_interrupt(set); }
+    bool get_tx_transfer_complete_flag() const override { return USART::get_tx_transfer_complete_flag(); }
+    bool get_overrun_error_flag() const override { return USART::get_overrun_error_flag(); }
+    void clear_tx_transfer_complete_flag() const override { USART::clear_tx_transfer_complete_flag(); }
+    void clear_sr_tc_bit() const override { USART_SR(usart) &= ~USART_SR_TC; }
+    void clear_rx_dma_error_flag() const override { *(dma_channels.rx_channel.error_flag) = false; }
+    void clear_tx_dma_error_flag() const override { *(dma_channels.tx_channel.error_flag) = false; }
+
+    // ISerial implementation via USART
+    using USART::send_blocking;
 
 private:
     USARTDMA dma_channels;

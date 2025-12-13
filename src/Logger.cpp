@@ -1,7 +1,6 @@
 #include <cstdio>
 
 #include "Logger.h"
-#include "USART.h"
 
 void Logger::set_verbosity(LogLevel new_verbosity) { verbosity = new_verbosity; }
 
@@ -72,4 +71,4 @@ void Logger::error(const char* fmt, ...) const
     va_end(args);
 }
 
-void USARTLogger::_log(std::string_view msg) const { usart->send_blocking(msg); }
+void USARTLogger::_log(std::string_view msg) const { usart->send_blocking(std::as_bytes(std::span(msg))); }

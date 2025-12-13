@@ -5,7 +5,7 @@ extern "C" {
 
 int _write([[maybe_unused]] int file, char* ptr, int len)
 {
-    bluepill::peripherals::usart1.send_blocking(std::string_view { ptr, static_cast<size_t>(len) });
+    bluepill::peripherals::usart1.send_blocking(std::as_bytes(std::span(ptr, static_cast<size_t>(len))));
     return len;
 }
 }
