@@ -176,7 +176,7 @@ $(FREERTOS_LIB_DIR)/heap_useNewlib_bluepill.o: $(FREERTOS_HEAP_DIR)/heap_useNewl
 
 $(FREERTOS_LIB_DIR)/port.o: $(FREERTOS_DIR)/portable/GCC/ARM_CM3/port.c
 	@echo "CC $<"
-	@$(CC) $(TGT_CFLAGS) -o $@ -c $<
+	@$(CC) $(TGT_CFLAGS) -Wno-unused-variable -o $@ -c $< # FreeRTOS gives unused-variable warning
 
 # Bosch BME280 driver
 libbme280: $(BME280_LIB_DIR) $(BME280_LIB_DIR)/libbme280.a
