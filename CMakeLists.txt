@@ -136,4 +136,31 @@ if(CHILI_BUILD_TESTS)
     add_subdirectory(tests)
 endif()
 
+# --- MQTT Broker (Universal) ---
+# Target to run the test MQTT broker
+# Check for virtual environment Python first, fall back to system python3
+if(EXISTS "${CMAKE_SOURCE_DIR}/.venv/bin/python3")
+    set(VENV_PYTHON "${CMAKE_SOURCE_DIR}/.venv/bin/python3")
+    add_custom_target(mqtt-broker
+        COMMAND ${VENV_PYTHON} ${CMAKE_SOURCE_DIR}/scripts/esp8266_test/run_broker.py
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Starting MQTT test broker on port 1883 (using venv)..."
+        USES_TERMINAL
+    )
+else()
+    find_program(PYTHON3 python3)
+    if(PYTHON3)
+        add_custom_target(mqtt-broker
+            COMMAND ${PYTHON3} ${CMAKE_SOURCE_DIR}/scripts/esp8266_test/run_broker.py
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+            COMMENT "Starting MQTT test broker on port 1883..."
+            USES_TERMINAL
+        )
+        message(WARNING "Virtual environment not found at ${CMAKE_SOURCE_DIR}/.venv. Using system python3. Run 'source setup_env' first if broker fails.")
+    else()
+        message(STATUS "python3 not found. 'mqtt-broker' target will be disabled.")
+    endif()
+endif()
+
+
 
