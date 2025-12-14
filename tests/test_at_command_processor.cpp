@@ -56,7 +56,8 @@ TEST_CASE("AtCommandProcessor interactions")
 
     SUBCASE("send_raw enables tx dma and waits for notification")
     {
-        std::string cmd = "AT\r\n";
+        std::string cmd_str = "AT\r\n";
+        std::span<const std::byte> cmd(reinterpret_cast<const std::byte*>(cmd_str.data()), cmd_str.size());
         processor.send_raw(cmd);
 
         CHECK(serial.log.size() == 2);

@@ -43,7 +43,7 @@ public:
     [[nodiscard]] virtual std::optional<unsigned int> connect_socket(
         SocketType sock_type, std::string_view addr, std::string_view port)
         = 0;
-    [[nodiscard]] virtual utils::ErrorCode send_socket(unsigned int id, std::span<std::byte> data) const = 0;
+    [[nodiscard]] virtual utils::ErrorCode send_socket(unsigned int id, std::span<const std::byte> data) const = 0;
     [[nodiscard]] virtual utils::ErrorCode close_socket(unsigned int id) = 0;
 };
 
@@ -187,10 +187,10 @@ public:
         return res;
     }
 
-    [[nodiscard]] utils::ErrorCode send_socket(unsigned int id, std::span<std::byte> data) const override
+    [[nodiscard]] utils::ErrorCode send_socket(unsigned int id, std::span<const std::byte> data) const override
     {
         if (ap_connected && socket_connected(id)) {
-            at_processor.send_raw(data);
+            at_processor.send_raw(data, 100);
             return utils::ErrorCode::OK;
         }
 
@@ -259,7 +259,7 @@ public:
         return res;
     }
 
-    [[nodiscard]] utils::ErrorCode send(std::span<std::byte> data) const
+    [[nodiscard]] utils::ErrorCode send(std::span<const std::byte> data) const
     {
         auto res = utils::ErrorCode::NETWORK_RESPONSE_NOT_OK_ERROR;
         if (id) {

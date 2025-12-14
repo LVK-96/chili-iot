@@ -33,18 +33,16 @@ public:
         usart->enable_rx_dma(reinterpret_cast<uintptr_t>(rx_buf.data()), rx_buf.size(), true, false, false, true);
     }
 
-    template <typename T>
-        requires std::ranges::contiguous_range<T>
-    void send_raw(const T& data, unsigned int timeout_ms = 10) const
+    utils::ErrorCode send_raw(std::span<const std::byte> cmd, unsigned int timeout_ms = 10) const
     {
-        if (std::ranges::size(data) == 0) {
-            return;
+        if (std::ranges::size(cmd) == 0) {
+            return utils::ErrorCode::OK;
         }
 
         // Enable TX DMA
         // TODO: not thread safe, lock USART/TX DMA mutex
-        usart->enable_tx_dma(reinterpret_cast<uintptr_t>(data.data()),
-            data.size() * sizeof(std::ranges::range_value_t<T>), true, false, true);
+        usart->enable_tx_dma(
+            reinterpret_cast<uintptr_t>(cmd.data()), cmd.size() * sizeof(std::byte), true, false, true);
 
         // Yield task until 1. USART transfer is complete or 2. timeout is reached
         // The USART interrupt will xTaskNotify() the task when the transfer is complete
@@ -74,6 +72,8 @@ public:
         usart->disable_tx_dma();
         usart->clear_tx_transfer_complete_flag();
         // TODO: not thread safe, release the USART/DMA mutex
+
+        return utils::ErrorCode::OK;
     }
 
     [[nodiscard]] utils::ErrorCode send_command(

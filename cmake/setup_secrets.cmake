@@ -14,11 +14,14 @@ set(SECRET_SERVER_PORT "")
 if(EXISTS ${SECRETS_FILE})
     file(STRINGS ${SECRETS_FILE} SECRET_LINES)
     foreach(LINE ${SECRET_LINES})
-        # Match lines like VAR = "value" or VAR = value
-        if(LINE MATCHES "^([a-zA-Z0-9_]+)[ \t]*=[ \t]*(.*)$")
+        # Match lines like VAR = "value", VAR = value, or VAR := value
+        if(LINE MATCHES "^[ \t]*([a-zA-Z0-9_]+)[ \t]*[:]?=[ \t]*(.*)$")
             set(KEY "${CMAKE_MATCH_1}")
             set(VALUE "${CMAKE_MATCH_2}")
             
+            # Remove backslash-escapes from quotes if present (e.g. from file(STRINGS) or bad input)
+            string(REPLACE "\\\"" "\"" VALUE "${VALUE}")
+
             # Write to header (Preserve quotes if present, as C++ strings need them)
             file(APPEND "${GENERATED_SECRETS_H}" "#define ${KEY} ${VALUE}\n")
             

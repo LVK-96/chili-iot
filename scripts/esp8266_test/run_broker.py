@@ -1,27 +1,37 @@
 
 import logging
 import asyncio
+import os
 from amqtt.broker import Broker
 
-# Minimal config: Listen on all interfaces, port 1883
-config = {
-    'listeners': {
-        'default': {
-            'type': 'tcp',
-            'bind': '0.0.0.0:1883',
-        }
-    },
-    'sys_interval': 10,
-    'auth': {
-        'allow-anonymous': True,
-    }
-}
 
 async def start_broker():
+    ip = os.getenv("BROKER_IP")
+    port = os.getenv("BROKER_PORT")
+    # Minimal config
+    config = {
+        'listeners': {
+            'default': {
+                'type': 'tcp',
+                'bind': f'{ip}:{port}',
+            }
+        },
+        'sys_interval': 10,
+        'auth': {
+            'allow-anonymous': True,
+        },
+        'topic-check': {
+            'enabled': True,
+            'plugins': ['topic_acl'],
+            'acl': {
+                'anonymous': ['#']
+            }
+        }
+    }
     broker = Broker(config)
     await broker.start()
     logging.basicConfig(level=logging.INFO)
-    logging.info("MQTT Broker started on port 1883")
+    logging.info(f"MQTT Broker started on {ip}:{port}")
     try:
         while True:
             await asyncio.sleep(1)

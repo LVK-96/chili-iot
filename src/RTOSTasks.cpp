@@ -1,11 +1,11 @@
 #include <cinttypes>
-#include <utility>
 
 #include <FreeRTOS.h>
 #include <queue.h>
 #include <task.h>
 
 #include "BlinkyLED.h"
+#include "MQTTClient.h"
 #include "Network.h"
 #include "RTOSTasks.h"
 #include "Temperature.h"
@@ -80,20 +80,29 @@ void network_task(void* a)
 
     const auto args = static_cast<NetworkTaskArgs*>(a);
 
-    Socket sock(args->network);
-    while (sock.connect(SocketType::UDP, SERVER_IP, SERVER_PORT) != utils::ErrorCode::OK) {
-        ;
+    MQTTClient mqtt_client(*(args->network));
+
+    // Connect to MQTT broker
+    // Retry indefinitely until connected
+    while (mqtt_client.connect("chili-sensor", SERVER_IP, SERVER_PORT) != utils::ErrorCode::OK) {
+        utils::logger.error("Failed to connect to MQTT broker, retrying...\n");
+        bluepill::async_wait_ms(1000);
     }
+    utils::logger.info("Connected to MQTT broker!\n");
 
     while (true) {
         double reading = 0;
         if (xQueueReceive(args->measurement_queue, &reading, portMAX_DELAY) != errQUEUE_EMPTY) {
             utils::logger.info("Sending reading...\n");
-            std::ignore = sock.send({ reinterpret_cast<std::byte*>(&reading), sizeof(reading) });
-            utils::logger.info("Reading sent!\n");
-            // Wait a bit, we get a new reading every 10 seconds
-            // So we will have plenty of time to clear any build up in the queue
-            bluepill::async_wait_ms(50);
+
+            std::span<const std::byte> payload_span(reinterpret_cast<const std::byte*>(&reading), sizeof(reading));
+
+            if (mqtt_client.publish("sensors/temperature", payload_span) == utils::ErrorCode::OK) {
+                utils::logger.info("Reading sent!\n");
+            } else {
+                utils::logger.error("Failed to publish reading!\n");
+                // TODO: Try to reconnect?
+            }
         }
     }
 }

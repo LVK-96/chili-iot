@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+#include <span>
 #include <string_view>
 
 namespace esp8266 {
@@ -11,6 +13,11 @@ public:
     constexpr explicit ATCommand(std::string_view cmd)
         : std::string_view(cmd)
     {
+    }
+
+    constexpr operator std::span<const std::byte>() const
+    {
+        return std::span<const std::byte>(reinterpret_cast<const std::byte*>(data()), size());
     }
 };
 
