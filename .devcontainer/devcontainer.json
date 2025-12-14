@@ -1,0 +1,7 @@
+{
+    "name": "Chili IoT Build Env",
+    "build": {
+        "dockerfile": "../Containerfile",
+        "context": ".."
+    }
+}

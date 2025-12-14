@@ -69,19 +69,7 @@ if(NOT CHILI_BUILD_TESTS)
         COMMENT "Firmware size:"
     )
 
-    # --- Debug Targets ---
-    
-    # Flash target
-    find_program(STFLASH st-flash)
-    if(STFLASH)
-        add_custom_target(flash
-            COMMAND ${STFLASH} --connect-under-reset write ${CMAKE_BINARY_DIR}/sensor_node.bin 0x8000000
-            DEPENDS sensor_node
-            COMMENT "Flashing sensor_node.bin to device..."
-        )
-    else()
-        message(STATUS "st-flash not found. 'flash' target will be disabled.")
-    endif()
+
 
     # Disassemble target
     add_custom_target(disassemble
@@ -127,3 +115,6 @@ option(CHILI_BUILD_TESTS "Build native tests" OFF)
 if(CHILI_BUILD_TESTS)
     add_subdirectory(tests)
 endif()
+
+# --- Help ---
+include(cmake/chili_help.cmake)

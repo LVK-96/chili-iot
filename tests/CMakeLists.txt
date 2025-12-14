@@ -35,7 +35,8 @@ target_link_libraries(runner PRIVATE
 )
 
 enable_testing()
-add_test(NAME runner COMMAND runner)
+include(${doctest_SOURCE_DIR}/scripts/cmake/doctest.cmake)
+doctest_discover_tests(runner)
 
 # Convenience target to build and run tests
 add_custom_target(test 

@@ -1,6 +1,6 @@
 # Chili IoT - STM32 Sensor Node
 
-An embedded IoT sensor node project for STM32F103C8T6 (Blue Pill) featuring FreeRTOS, MQTT communication, and BME280 environmental sensing.
+An embedded IoT sensor node project for STM32F103C8T6 (Blue Pill) featuring FreeRTOS, libopencm3, MQTT communication, and BME280 environmental sensing.
 
 ## Hardware
 
@@ -8,7 +8,37 @@ An embedded IoT sensor node project for STM32F103C8T6 (Blue Pill) featuring Free
 - **Sensor**: BME280 (Temperature, Humidity, Pressure)
 - **Programmer**: ST-Link V2
 
-## Dependencies
+## Containerized Build System
+
+This project provides a containerized build environment to ensure consistent environment across all machines.
+
+### 1. Prerequisites
+
+- Podman.
+- `stlink-tools` on host (for flashing)
+
+### 2. Quick Start (Helper Script)
+
+The `container-build.sh` script automates building and running the container.
+
+```bash
+# Build Firmware (inside container)
+./container-build.sh cmake --preset target && ./container-build.sh cmake --build build/stm32
+
+# Build Tests (inside container)
+./container-build.sh cmake --preset host && ./container-build.sh cmake --build build/host
+```
+
+### 3. Flashing
+
+Flashing is done from the **host machine** to preserve portability.
+
+```bash
+# Flash the binary built by Podman
+./flash.sh
+```
+
+## Environment setup (Manual)
 
 ### System Packages (Debian/Ubuntu)
 
@@ -27,19 +57,7 @@ sudo apt-get install \
 sudo apt-get install clang-format clang-tidy
 ```
 
-### Firmware Dependencies (Auto-fetched)
-
-The following are automatically downloaded via CMake `FetchContent`:
-
-- **libopencm3** - STM32 peripheral library
-- **FreeRTOS-Kernel** - Real-time operating system
-- **BME280_driver** - Bosch sensor driver
-
-### Test Dependencies (Auto-fetched)
-
-- **doctest** - C++ testing framework
-
-### Python Dependencies
+### Python environment
 
 ```bash
 # Create and activate virtual environment
@@ -48,48 +66,6 @@ source .venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
-```
-
-Or simply use the setup script:
-
-```bash
-source setup_env
-```
-
-## Quick Start
-
-### 1. Environment Setup
-
-```bash
-source setup_env
-```
-
-This will:
-
-- Create and activate a Python virtual environment
-- Install Python dependencies
-- Set Ninja as the default CMake generator (if available)
-
-### 2. Build and Run Tests
-
-```bash
-cmake --preset host
-cmake --build build/host --target test
-```
-
-### 3. Build Firmware
-
-```bash
-cmake --preset target
-cmake --build build/stm32
-```
-
-### 4. Flash to Device
-
-Connect your ST-Link and Blue Pill, then:
-
-```bash
-cmake --build build/stm32 --target flash
 ```
 
 ## Build System
@@ -103,40 +79,9 @@ This project uses **CMake Presets** for configuration:
 | `host` | Native tests on your machine | `build/host` |
 | `target` (or `stm32`) | Cross-compile for STM32 | `build/stm32` |
 
-### Available Targets
-
-#### Universal (Both Presets)
-
-| Target | Description |
-|--------|-------------|
-| `mqtt-broker` | Run MQTT test broker on port 1883 |
-| `udp-server` | Run UDP test server script |
-| `style-check` | Check code formatting (requires clang-format) |
-| `style-fix` | Auto-fix code formatting |
-| `clang-tidy` | Static analysis (requires clang-tidy) |
-| `clang-tidy-fix` | Auto-fix static analysis issues |
-| `clean` | Remove build artifacts |
-| `help` | List all targets |
-
-#### Host Only
-
-| Target | Description |
-|--------|-------------|
-| `test` | Build and run all unit tests |
-| `runner` | Test executable binary |
-
-#### Firmware Only
-
-| Target | Description |
-|--------|-------------|
-| `sensor_node` | Main firmware binary (ELF + BIN) |
-| `flash` | Flash firmware to device (requires st-flash) |
-| `disassemble` | Generate assembly dump |
-| `gdb-server` | Start GDB server for debugging |
-
 ## Project Structure
 
-```
+```text
 chili-iot/
 ├── src/              # Firmware source code
 ├── tests/            # Unit tests
@@ -154,49 +99,55 @@ chili-iot/
 ### Running Tests
 
 ```bash
-cmake --preset host
-cmake --build build/host --target test
+./container-build.sh cmake --preset host
+./container-build.sh cmake --build build/host --target test
 ```
 
 ### Building Firmware
 
 ```bash
-cmake --preset target
-cmake --build build/stm32
+./container-build.sh cmake --preset target
+./container-build.sh cmake --build build/stm32
 ```
 
 ### Flashing
 
 ```bash
-# Flash the firmware
-cmake --build build/stm32 --target flash
-
-# Start GDB server for debugging
-cmake --build build/stm32 --target gdb-server
+# Flash the firmware (using helper script)
+./flash.sh
 ```
 
 ### Code Quality
 
 ```bash
 # Check formatting
-cmake --build build/host --target style-check
+./container-build.sh cmake --build build/host --target style-check
 
 # Auto-fix formatting
-cmake --build build/host --target style-fix
+./container-build.sh cmake --build build/host --target style-fix
 
-# Run static analysis (if clang-tidy installed)
-cmake --build build/host --target clang-tidy
+# Run static analysis
+./container-build.sh cmake --build build/host --target clang-tidy
 ```
 
 ### Clean Builds
 
 ```bash
 # Clean specific build
-cmake --build build/host --target clean
-cmake --build build/stm32 --target clean
+./container-build.sh cmake --build build/host --target clean
+./container-build.sh cmake --build build/stm32 --target clean
 
-# Or delete entire build directory
+# Or delete entire build directory (on host)
 rm -rf build
+```
+
+### Checking Available Targets
+
+To see a list of all build targets for your current configuration (e.g., `host`), run:
+
+```bash
+# List available targets
+./container-build.sh cmake --build build/host --target chili-help
 ```
 
 ## Configuration
@@ -205,7 +156,7 @@ rm -rf build
 
 WiFi credentials and other secrets are managed via a `.secrets` file in the project root (not tracked in git). Create this file with:
 
-```
+```ini
 WIFI_SSID = "your-ssid"
 WIFI_PASSWORD = "your-password"
 SERVER_IP = "your-ip"
@@ -215,24 +166,6 @@ SERVER_PORT = "your-port"
 These are processed by `cmake/setup_secrets.cmake` and injected at compile time using `-include` to keep them out of build logs.
 
 ## Troubleshooting
-
-### st-flash not found
-
-```bash
-sudo apt-get install stlink-tools
-```
-
-### Ninja not found
-
-```bash
-sudo apt-get install ninja-build
-```
-
-Or use Make instead (CMake will auto-detect):
-
-```bash
-cmake --preset target
-```
 
 ### Permission denied when flashing
 

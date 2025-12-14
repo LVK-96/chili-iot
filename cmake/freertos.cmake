@@ -10,6 +10,7 @@ target_include_directories(freertos_config SYSTEM INTERFACE src)
 
 # --- FetchContent Population ---
 # Manually populate FreeRTOS to control its build
+cmake_policy(SET CMP0169 OLD)
 FetchContent_GetProperties(FreeRTOS-Kernel)
 if(NOT freertos-kernel_POPULATED)
     FetchContent_Populate(FreeRTOS-Kernel)
