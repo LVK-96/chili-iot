@@ -1,3 +1,5 @@
+include_guard(GLOBAL)
+message(STATUS "Including libopencm3.cmake")
 # libopencm3 wrapper
 # Since libopencm3 has a complex Makefile build, we use ExternalProject logic or custom commands.
 # Here we use a Custom Target that runs 'make' in the fetched directory.

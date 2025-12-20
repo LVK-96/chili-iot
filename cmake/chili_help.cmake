@@ -1,3 +1,4 @@
+include_guard(GLOBAL)
 # Helper macro to add help line if target exists
 set(HELP_COMMANDS 
     COMMAND ${CMAKE_COMMAND} -E echo "================================================================="

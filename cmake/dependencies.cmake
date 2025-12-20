@@ -1,3 +1,4 @@
+include_guard(GLOBAL)
 include(FetchContent)
 
 # --- libopencm3 ---
@@ -11,7 +12,7 @@ FetchContent_Declare(
 FetchContent_Declare(
     FreeRTOS-Kernel
     GIT_REPOSITORY https://github.com/FreeRTOS/FreeRTOS-Kernel.git
-    GIT_TAG        18ed8886fe3eed9dbe433a82cdc62ce5dc0315eb 
+    GIT_TAG        18ed8886fe3eed9dbe433a82cdc62ce5dc0315eb
 )
 
 # --- BME280 Driver ---
@@ -25,7 +26,5 @@ FetchContent_Declare(
 FetchContent_Declare(
     doctest
     GIT_REPOSITORY https://github.com/doctest/doctest.git
-    GIT_TAG        v2.4.11 # Keeping the one I set, or match submodule v2.4.12 if desired. Submodule said 1da23a3e which is v2.4.11? No v2.4.12.
-    # Let's match submodule: 1da23a3e8119ec5cce4f9388e91b065e20bf06f5 (v2.4.11 or 12?)
-    # Submodule status said (v2.4.12).
+    GIT_TAG        v2.4.11
 )

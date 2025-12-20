@@ -10,16 +10,13 @@
 #include "Logger.h"
 #include "System.h"
 #include "interfaces/II2C.h"
+#include "utils.h"
 
-class TemperatureSensor {
-public:
-    [[nodiscard]] virtual utils::ErrorCode init() const = 0;
-    [[nodiscard]] virtual std::optional<double> read() const = 0;
-};
+#include "interfaces/ITemperatureSensor.h"
 
 enum class BME280I2CBusAddr : uint8_t { PRIMARY = BME280_I2C_ADDR_PRIM, SECONDARY = BME280_I2C_ADDR_SEC };
 
-class BME280TemperatureSensor final : public TemperatureSensor {
+class BME280TemperatureSensor final : public ITemperatureSensor {
 public:
     constexpr BME280TemperatureSensor(const II2C* i2c, BME280I2CBusAddr bme280_addr) noexcept
         : i2c(i2c)

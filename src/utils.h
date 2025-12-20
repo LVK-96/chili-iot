@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-class USARTLogger;
+class Logger; // Forward declaration
 
 namespace utils {
 
@@ -39,7 +39,7 @@ enum class ErrorCode : uint8_t {
     UNEXPECTED_ERROR = 255
 };
 
-extern USARTLogger logger;
+extern Logger logger;
 
 void nop(unsigned int);
 

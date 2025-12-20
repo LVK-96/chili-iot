@@ -1,6 +1,6 @@
-#include "mock_freertos.h"
-#include "mock_libopencm3.h"
 #include "test_events.h"
+#include "mock_libopencm3.h"
+#include "stubs/freertos/mock_freertos.h"
 
 #include <type_traits>
 

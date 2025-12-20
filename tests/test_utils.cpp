@@ -1,5 +1,5 @@
-#include "doctest.h"
 #include "utils.h"
+#include <doctest/doctest.h>
 
 TEST_CASE("Utility mask functions")
 {

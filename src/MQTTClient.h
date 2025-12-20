@@ -4,12 +4,12 @@
 #include <span>
 #include <string_view>
 
-#include "Network.h"
+#include "interfaces/INetwork.h"
 #include "libs/SimpleMQTT/SimpleMQTT.h"
 
 class MQTTClient {
 public:
-    explicit MQTTClient(Network& network)
+    explicit MQTTClient(INetwork& network)
         : socket(&network)
     {
     }

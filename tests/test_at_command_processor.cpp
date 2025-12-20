@@ -1,7 +1,7 @@
 #include "AtCommandProcessor.h"
-#include "doctest.h"
 #include "interfaces/IDmaSerial.h"
 #include "mocks/MockRTOS.h"
+#include <doctest/doctest.h>
 #include <string>
 #include <vector>
 

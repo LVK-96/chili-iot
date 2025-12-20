@@ -34,6 +34,9 @@
 #define DMA_CCR_PL_HIGH (0x2 << 12)
 #define DMA_CCR_PL_VERY_HIGH (0x3 << 12)
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 void dma_channel_reset(uint32_t dma, uint8_t channel);
 void dma_set_peripheral_address(uint32_t dma, uint8_t channel, uint32_t address);
 void dma_set_memory_address(uint32_t dma, uint8_t channel, uint32_t address);
@@ -57,9 +60,14 @@ void dma_enable_half_transfer_interrupt(uint32_t dma, uint8_t channel);
 void dma_disable_half_transfer_interrupt(uint32_t dma, uint8_t channel);
 void dma_enable_channel(uint32_t dma, uint8_t channel);
 void dma_disable_channel(uint32_t dma, uint8_t channel);
+uint16_t dma_get_number_of_data(uint32_t dma, uint8_t channel);
+#ifdef __cplusplus
+}
+#endif
 
 extern uint32_t mock_dma_cndtr;
-extern uint32_t mock_dma_ccr;
+extern volatile uint32_t mock_dma_ccr;
+
 #define DMA_CNDTR(dma, channel) ((void)(dma), (void)(channel), mock_dma_cndtr)
 #define DMA_CCR(dma, channel) ((void)(dma), (void)(channel), mock_dma_ccr)
 
@@ -71,5 +79,11 @@ extern uint32_t mock_dma_ccr;
 #define DMA_HTIF (1 << 2)
 #define DMA_TCIF (1 << 1)
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 bool dma_get_interrupt_flag(uint32_t dma, uint8_t channel, uint32_t flag);
 void dma_clear_interrupt_flags(uint32_t dma, uint8_t channel, uint32_t flags);
+#ifdef __cplusplus
+}
+#endif

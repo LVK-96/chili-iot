@@ -11,7 +11,7 @@ void Logger::log(std::string_view msg) const { _log(msg); }
 void Logger::_log_vprintf(LogLevel level, const char* fmt, va_list args) const
 {
     if (level >= verbosity) {
-        constexpr unsigned int buffer_size = 256;
+        constexpr unsigned int buffer_size = 128;
         char buffer[buffer_size];
 
         // Add log level prefix
@@ -71,4 +71,4 @@ void Logger::error(const char* fmt, ...) const
     va_end(args);
 }
 
-void USARTLogger::_log(std::string_view msg) const { usart->send_blocking(std::as_bytes(std::span(msg))); }
+void Logger::_log(std::string_view msg) const { std::fwrite(msg.data(), 1, msg.size(), stdout); }

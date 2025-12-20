@@ -1,3 +1,4 @@
+include_guard(GLOBAL)
 # Track .secrets file so CMake re-runs if it changes
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/.secrets")
 

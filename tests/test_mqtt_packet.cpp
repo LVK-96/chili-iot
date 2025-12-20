@@ -19,7 +19,7 @@ TEST_CASE("MQTT Connect Packet")
     // Fixed Header: 0x10 (CONNECT)
     // Remaining Length: 23 (0x17)
 
-    REQUIRE(len == 2 + 23);
+    CHECK(len == 2 + 23);
     CHECK(packet[0] == std::byte { 0x10 });
     CHECK(packet[1] == std::byte { 23 });
 
@@ -63,7 +63,7 @@ TEST_CASE("MQTT Publish Packet QoS 0")
 
     // Total Remaining Length = 12 + 5 = 17
 
-    REQUIRE(len == 2 + 17);
+    CHECK(len == 2 + 17);
     CHECK(packet[0] == std::byte { 0x30 }); // PUBLISH, QoS 0
     CHECK(packet[1] == std::byte { 17 });
 
@@ -93,7 +93,7 @@ TEST_CASE("MQTT Publish Packet QoS 1")
 
     // Total Remaining Length = 3 + 2 + 1 = 6
 
-    REQUIRE(len == 2 + 6);
+    CHECK(len == 2 + 6);
     CHECK(packet[0] == std::byte { 0x32 }); // PUBLISH, QoS 1 (Bit 1 set) -> 0x30 | 0x02 = 0x32
     CHECK(packet[1] == std::byte { 6 });
 
@@ -117,5 +117,5 @@ TEST_CASE("MQTT Buffer Overflow protection check")
     std::span<const std::byte> payload(reinterpret_cast<const std::byte*>(message.data()), message.size());
     size_t len = SimpleMQTT::make_publish_packet(packet, "topic/test", payload);
 
-    REQUIRE(len == 0);
+    CHECK(len == 0);
 }

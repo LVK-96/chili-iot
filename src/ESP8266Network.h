@@ -11,6 +11,7 @@
 #include "Logger.h"
 #include "System.h"
 #include "interfaces/IDmaSerial.h"
+#include "interfaces/INetwork.h"
 #include "interrupts.h"
 #include "utils.h"
 
@@ -23,31 +24,7 @@
 #define WIFI_PASS "FAKE_PASS"
 #endif // !WIFI_PASS
 
-#ifndef SERVER_IP
-#define SERVER_IP "0.0.0.0"
-#endif // !SERVER_IP
-
-#ifndef SERVER_PORT
-#define SERVER_PORT "666"
-#endif // !SERVER_PORT
-
-enum class SocketType { TCP, UDP };
-
-class Network {
-public:
-    virtual void reset() const = 0;
-    virtual void hard_reset() const = 0;
-    virtual utils::ErrorCode init() = 0;
-    [[nodiscard]] virtual bool get_ap_connected() = 0;
-    [[nodiscard]] virtual utils::ErrorCode connect_to_ap() = 0;
-    [[nodiscard]] virtual std::optional<unsigned int> connect_socket(
-        SocketType sock_type, std::string_view addr, std::string_view port)
-        = 0;
-    [[nodiscard]] virtual utils::ErrorCode send_socket(unsigned int id, std::span<const std::byte> data) const = 0;
-    [[nodiscard]] virtual utils::ErrorCode close_socket(unsigned int id) = 0;
-};
-
-class ESP8266Network final : public Network {
+class ESP8266Network final : public INetwork {
 public:
     constexpr ESP8266Network(const IDmaSerial* usart, const GPIOPin* reset_pin, const IRTOS* rtos) noexcept
         : usart(usart)
@@ -55,21 +32,6 @@ public:
         , rtos(rtos)
         , at_processor(usart, rtos)
     {
-    }
-
-    void hard_reset() const override
-    {
-        utils::logger.info("Hard resetting ESP8266...\n");
-        reset_pin->port->clear_pins(reset_pin->pin_nro);
-        rtos->delay(100);
-        reset_pin->port->set_pins(reset_pin->pin_nro);
-        rtos->delay(reset_time); // Wait a bit so the ESP8266 has time to reset
-    }
-
-    void reset() const override
-    {
-        utils::logger.info("Soft resetting ESP8266...\n");
-        (void)at_processor.send_command(esp8266::commands::RESET, "ready", reset_time);
     }
 
     utils::ErrorCode init() override
@@ -101,7 +63,7 @@ public:
         return connect_to_ap();
     }
 
-    void disconnect_ap() const
+    void disconnect_ap() const override
     {
         utils::logger.info("Disconnecting from AP...\n");
         at_processor.send_raw(esp8266::commands::DISCONNECT_AP);
@@ -228,47 +190,19 @@ private:
     AtCommandProcessor at_processor;
 
     bool socket_connected(unsigned int id) const { return (id < max_connections) && socket_connections[id]; }
-};
 
-class Socket {
-public:
-    Socket(Network* network)
-        : network(network)
-        , id(std::nullopt)
+    void hard_reset() const
     {
+        utils::logger.info("Hard resetting ESP8266...\n");
+        reset_pin->port->clear_pins(reset_pin->pin_nro);
+        rtos->delay(100);
+        reset_pin->port->set_pins(reset_pin->pin_nro);
+        rtos->delay(reset_time);
     }
 
-    [[nodiscard]] utils::ErrorCode connect(SocketType sock_type, std::string_view addr, std::string_view port)
+    void reset() const
     {
-        // Connect this socket, network returns the assigned ID if succesfull
-        id = network->connect_socket(sock_type, addr, port);
-
-        auto res = utils::ErrorCode::NETWORK_RESPONSE_NOT_OK_ERROR;
-        if (id) {
-            res = utils::ErrorCode::OK;
-        }
-        return res;
+        utils::logger.info("Soft resetting ESP8266...\n");
+        (void)at_processor.send_command(esp8266::commands::RESET, "ready", reset_time);
     }
-
-    [[nodiscard]] utils::ErrorCode close() const
-    {
-        auto res = utils::ErrorCode::NETWORK_RESPONSE_NOT_OK_ERROR;
-        if (id) {
-            res = network->close_socket(id.value());
-        }
-        return res;
-    }
-
-    [[nodiscard]] utils::ErrorCode send(std::span<const std::byte> data) const
-    {
-        auto res = utils::ErrorCode::NETWORK_RESPONSE_NOT_OK_ERROR;
-        if (id) {
-            res = network->send_socket(id.value(), data);
-        }
-        return res;
-    }
-
-private:
-    Network* network;
-    std::optional<int> id;
 };

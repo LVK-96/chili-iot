@@ -1,3 +1,4 @@
+include_guard(GLOBAL)
 # BME280 wrapper
 
 # BME280 driver is just source files

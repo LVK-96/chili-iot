@@ -10,35 +10,150 @@ An embedded IoT sensor node project for STM32F103C8T6 (Blue Pill) featuring Free
 
 ## Containerized Build System
 
-This project provides a containerized build environment to ensure consistent environment across all machines.
+This project provides a containerized build to ensure consistent environment across all machines.
 
-### 1. Prerequisites
+### Prerequisites
 
-- Podman.
+- Podman
 - `stlink-tools` on host (for flashing)
 
-### 2. Quick Start (Helper Script)
-
-The `container-build.sh` script automates building and running the container.
+### Quick Start
 
 ```bash
-# Build Firmware (inside container)
-./container-build.sh cmake --preset target && ./container-build.sh cmake --build build/stm32
+# Configure and build firmware
+./container-build.sh cmake --preset arm
+./container-build.sh cmake --build build/arm --target firmware
 
-# Build Tests (inside container)
-./container-build.sh cmake --preset host && ./container-build.sh cmake --build build/host
+# Configure and build on host unit tests
+./container-build.sh cmake --preset host
+./container-build.sh cmake --build build/host --target test
 ```
 
-### 3. Flashing
+## Build System
 
-Flashing is done from the **host machine** to preserve portability.
+This project uses **CMake Presets** organized by CPU architecture:
+
+### Presets
+
+| Preset | Architecture | Description | Binary Dir |
+|--------|--------------|-------------|------------|
+| `arm` | ARM Cortex-M | Cross-compile for STM32. Builds firmware and tests. | `build/arm` |
+| `host` | Host machine | Native build for host machine. Unit tests only. | `build/host` |
+
+### ARM Targets (`--preset arm`)
+
+| Target | Description |
+|--------|-------------|
+| `firmware` | Production build |
+| `firmware-debug` | Semihosting enabled firmware |
+| `qemu-test` | Run unit tests in QEMU  |
+| `qemu-sim` | Run semihosting firmware in QEMU |
+| `flash` | Flash firmware to device |
+| `flash-debug` | Flash semihosting firmware to device |
+
+### Host Targets (`--preset host`)
+
+| Target | Description |
+|--------|-------------|
+| `runner` | Native unit tests executable |
+| `test` | Run unit tests |
+
+## Project Structure
+
+```text
+chili-iot/
+├── src/              # Firmware source code
+├── tests/            # Unit tests and mocks
+├── cmake/            # CMake modules and toolchain files
+├── deps/             # Auto-fetched dependencies (cached)
+├── build/
+│   ├── arm/         # ARM build artifacts (firmware + tests)
+│   └── host/        # Host build artifacts (tests only)
+└── CMakePresets.json # Build configurations
+```
+
+## Development Workflow
+
+### Building Firmware
 
 ```bash
-# Flash the binary built by Podman
+# Configure (once)
+./container-build.sh cmake --preset arm
+
+# Build production firmware
+./container-build.sh cmake --build build/arm --target firmware
+
+# Build debug firmware (semihosting for debugger)
+./container-build.sh cmake --build build/arm --target firmware-debug
+```
+
+### Running in QEMU
+
+The mps2-an385 device is used to model a generic Cortex-M3 device. All the interactions with bluepill peripherals are mocked in QEMU simulation.
+
+```bash
+# Run firmware simulation
+./container-build.sh cmake --build build/arm --target qemu-firmware
+
+# Run unit tests in QEMU
+./container-build.sh cmake --build build/arm --target qemu-test
+```
+
+To exit QEMU: press `Ctrl+X X` (sends escape character).
+
+### Running Host Tests
+
+```bash
+# Configure (once)
+./container-build.sh cmake --preset host
+
+# Build and run tests
+./container-build.sh cmake --build build/host --target test
+```
+
+### Flashing
+
+Outside the build container.
+
+```bash
 ./flash.sh
 ```
 
-## Environment setup (Manual)
+### Code Quality
+
+```bash
+# Check formatting
+./container-build.sh cmake --build build/arm --target style-check
+
+# Auto-fix formatting
+./container-build.sh cmake --build build/arm --target style-fix
+
+# Run static analysis
+./container-build.sh cmake --build build/arm --target clang-tidy
+```
+
+### Clean Builds
+
+```bash
+# Clean specific build
+./container-build.sh cmake --build build/arm --target clean
+
+# Or just nuke the entire build directory
+rm -rf build
+```
+
+### Available Targets
+
+```bash
+# List all available targets
+./container-build.sh cmake --build build/arm --target help
+# OR
+./container-build.sh cmake --build build/host --target help
+```
+
+## Environment Setup (Manual)
+
+Note, the build might depend on some newish features of the tools o your milage may vary depending on your system.
 
 ### System Packages (Debian/Ubuntu)
 
@@ -49,6 +164,7 @@ sudo apt-get install \
     cmake \
     ninja-build \
     stlink-tools \
+    qemu-system-arm \
     python3 \
     python3-venv \
     python3-pip
@@ -57,7 +173,7 @@ sudo apt-get install \
 sudo apt-get install clang-format clang-tidy
 ```
 
-### Python environment
+### Python Environment
 
 ```bash
 # Create and activate virtual environment
@@ -68,93 +184,11 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Build System
-
-This project uses **CMake Presets** for configuration:
-
-### Available Presets
-
-| Preset | Description | Binary Dir |
-|--------|-------------|------------|
-| `host` | Native tests on your machine | `build/host` |
-| `target` (or `stm32`) | Cross-compile for STM32 | `build/stm32` |
-
-## Project Structure
-
-```text
-chili-iot/
-├── src/              # Firmware source code
-├── tests/            # Unit tests
-├── cmake/            # CMake modules and toolchain files
-├── scripts/          # Utility scripts
-├── deps/             # Auto-fetched dependencies (cached)
-├── build/
-│   ├── host/        # Test build artifacts
-│   └── stm32/       # Firmware build artifacts
-└── CMakePresets.json # Build configurations
-```
-
-## Development Workflow
-
-### Running Tests
-
-```bash
-./container-build.sh cmake --preset host
-./container-build.sh cmake --build build/host --target test
-```
-
-### Building Firmware
-
-```bash
-./container-build.sh cmake --preset target
-./container-build.sh cmake --build build/stm32
-```
-
-### Flashing
-
-```bash
-# Flash the firmware (using helper script)
-./flash.sh
-```
-
-### Code Quality
-
-```bash
-# Check formatting
-./container-build.sh cmake --build build/host --target style-check
-
-# Auto-fix formatting
-./container-build.sh cmake --build build/host --target style-fix
-
-# Run static analysis
-./container-build.sh cmake --build build/host --target clang-tidy
-```
-
-### Clean Builds
-
-```bash
-# Clean specific build
-./container-build.sh cmake --build build/host --target clean
-./container-build.sh cmake --build build/stm32 --target clean
-
-# Or delete entire build directory (on host)
-rm -rf build
-```
-
-### Checking Available Targets
-
-To see a list of all build targets for your current configuration (e.g., `host`), run:
-
-```bash
-# List available targets
-./container-build.sh cmake --build build/host --target chili-help
-```
-
 ## Configuration
 
 ### Secrets
 
-WiFi credentials and other secrets are managed via a `.secrets` file in the project root (not tracked in git). Create this file with:
+WiFi credentials and other secrets are managed via a `.secrets` file.
 
 ```ini
 WIFI_SSID = "your-ssid"
@@ -163,7 +197,7 @@ SERVER_IP = "your-ip"
 SERVER_PORT = "your-port"
 ```
 
-These are processed by `cmake/setup_secrets.cmake` and injected at compile time using `-include` to keep them out of build logs.
+These are processed by `cmake/setup_secrets.cmake` and injected at compile time.
 
 ## Troubleshooting
 

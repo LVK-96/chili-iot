@@ -4,9 +4,6 @@
 #include <cstdio>
 #include <string_view>
 
-#include "USART.h"
-#include "utils.h"
-
 class Logger {
 public:
     enum class LogLevel { INFO = 0, WARNING = 1, ERROR = 2, SILENT = 3 };
@@ -32,18 +29,8 @@ public:
 
 protected:
     LogLevel verbosity;
-    virtual void _log(std::string_view msg) const = 0;
-};
+    virtual void _log(std::string_view msg) const;
 
-class USARTLogger final : public Logger {
 public:
-    constexpr USARTLogger(LogLevel verbosity, const ISerial* usart) noexcept
-        : Logger(verbosity)
-        , usart(usart)
-    {
-    }
-
-private:
-    const ISerial* usart;
-    void _log(std::string_view msg) const override;
+    virtual ~Logger() = default;
 };

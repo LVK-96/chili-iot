@@ -1,7 +1,8 @@
+#include "utils.h"
 #include "Logger.h"
 #include "System.h"
 
-USARTLogger utils::logger { Logger::LogLevel::INFO, &bluepill::peripherals::usart1 };
+Logger utils::logger { Logger::LogLevel::INFO };
 
 void utils::nop(unsigned int n)
 {

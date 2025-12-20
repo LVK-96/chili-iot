@@ -1,6 +1,6 @@
 #pragma once
 
-#include "FreeRTOS.h"
+#include <FreeRTOS.h>
 
 typedef void (*TaskFunction_t)(void*);
 

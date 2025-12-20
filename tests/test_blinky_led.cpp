@@ -1,11 +1,11 @@
 #include "BlinkyLED.h"
-#include "doctest.h"
+#include <doctest/doctest.h>
 
-TEST_CASE("GPIOLED construction and interface")
+TEST_CASE("BlinkyLED construction and interface")
 {
     GPIOPort port(BluePillGPIOPort::C, RCC_GPIOC, RST_GPIOC);
     GPIOPin pin(GPIO13, &port);
-    GPIOLED led(&pin);
+    BlinkyLED led(&pin);
 
     SUBCASE("LED operations don't crash")
     {

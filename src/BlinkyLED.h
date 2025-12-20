@@ -4,21 +4,14 @@
 #include <libopencm3/stm32/rcc.h>
 
 #include "GPIO.h"
+#include "interfaces/ILED.h"
 
-class BlinkyLED {
-public:
-    constexpr BlinkyLED() noexcept = default;
-    virtual void toggle() const = 0;
-    virtual void on() const = 0;
-    virtual void off() const = 0;
-};
-
-class GPIOLED final : public BlinkyLED {
+class BlinkyLED final : public ILED {
 public:
 // GCC analyzer gives a analyzer-possible-null-dereference false positive here when called from std::make_unique
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wanalyzer-possible-null-dereference"
-    constexpr GPIOLED(const GPIOPin* pin) noexcept
+    constexpr BlinkyLED(const GPIOPin* pin) noexcept
         : pin(pin)
     {
     }

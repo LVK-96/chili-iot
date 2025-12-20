@@ -88,4 +88,7 @@ void DMA::reset() const
 
 void DMA::reset(BluePillDMAChannel channel) const { dma_channel_reset(dma, static_cast<uint8_t>(channel)); }
 
-unsigned int DMA::get_count(BluePillDMAChannel channel) const { return DMA_CNDTR(dma, static_cast<uint8_t>(channel)); }
+unsigned int DMA::get_count(BluePillDMAChannel channel) const
+{
+    return static_cast<unsigned int>(dma_get_number_of_data(dma, static_cast<uint8_t>(channel)));
+}

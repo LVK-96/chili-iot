@@ -12,6 +12,7 @@
 
 #include "Logger.h"
 #include "interrupts.h"
+#include "utils.h"
 
 static bool get_dma_interrupt_flag(uint32_t dma, uint8_t channel, uint32_t flag)
 {

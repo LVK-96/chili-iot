@@ -17,30 +17,23 @@
             }
         },
         {
-            "name": "stm32",
-            "displayName": "Firmware (STM32)",
-            "description": "Cross-compile for STM32F103",
+            "name": "arm",
+            "displayName": "ARM Cross-Compile",
+            "description": "Cross-compile for ARM Cortex-M (STM32F103). Builds firmware and tests.",
             "inherits": "default",
-            "binaryDir": "${sourceDir}/build/stm32",
+            "binaryDir": "${sourceDir}/build/arm",
             "cacheVariables": {
                 "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/arm-none-eabi-toolchain.cmake",
                 "CMAKE_BUILD_TYPE": "Release"
             }
         },
         {
-            "name": "target",
-            "displayName": "Alias for stm32",
-            "description": "Alias for stm32",
-            "inherits": "stm32"
-        },
-        {
             "name": "host",
-            "displayName": "Tests (Host)",
-            "description": "Build tests on Host",
+            "displayName": "Host",
+            "description": "Native build for host machine. Unit tests only.",
             "inherits": "default",
             "binaryDir": "${sourceDir}/build/host",
             "cacheVariables": {
-                "CHILI_BUILD_TESTS": "ON",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         }

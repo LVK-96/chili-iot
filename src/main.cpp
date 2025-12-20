@@ -4,48 +4,68 @@
 #include <queue.h>
 #include <task.h>
 
+#include "Factories.h"
 #include "FreeRTOSAdapter.h"
+#include "I2C.h"
+#include "Logger.h"
 #include "RTOSTasks.h"
 #include "System.h"
+#include "interfaces/ILED.h"
+#include "interfaces/INetwork.h"
+#include "interfaces/IRTOS.h"
+#include "interfaces/ITemperatureSensor.h"
+
+#ifdef SEMIHOSTING_ENV
+extern "C" void initialise_monitor_handles(void);
+#endif
+
+// Use static objects to ensure they live forever and are not clobbered by stack reuse
+static std::unique_ptr<ITemperatureSensor> temperature;
+static std::unique_ptr<IRTOS> rtos_adapter;
+static std::unique_ptr<INetwork> network;
+static std::unique_ptr<ILED> led;
+
+static std::unique_ptr<SetupTaskArgs> setup_args;
+static std::unique_ptr<TemperatureTaskArgs> temperature_args;
+static std::unique_ptr<NetworkTaskArgs> network_args;
+static std::unique_ptr<LedTaskArgs> led_args;
+
+static QueueHandle_t measurement_queue = nullptr;
 
 int main()
 {
+#ifdef SEMIHOSTING_ENV
+    initialise_monitor_handles();
+    printf("===SEMIHOSTING_ENV===\n");
+#endif // SEMIHOSTING_ENV
+
     // Setup the Bluepill board
     bluepill::setup();
     utils::logger.info("Board setup OK!\n");
 
     // FreeRTOS queue for the the temperature measurements
     // Temperature task writes to the queue, network task reads from the queue
-    auto measurement_queue = xQueueCreate(measurement_queue_size, sizeof(double));
+    measurement_queue = xQueueCreate(measurement_queue_size, sizeof(double));
 
-    // Temperature sensor, network interface & blinking LED
-    auto temperature = std::make_unique<BME280TemperatureSensor>(&bluepill::peripherals::i2c1,
-        BME280I2CBusAddr::SECONDARY); // The Waveshare BME280 module defaults to the secondary I2C address (0x77)
-    auto rtos = std::make_unique<FreeRTOSAdapter>();
-    auto network = std::make_unique<ESP8266Network>(
-        &bluepill::peripherals::usart2, &bluepill::peripherals::esp_reset_pin, rtos.get());
-    auto led = std::make_unique<GPIOLED>(&bluepill::peripherals::led_pin);
+    // Initialize globals
+    temperature = createTemperatureSensor();
+    rtos_adapter = createRTOS();
+    network = createNetwork(rtos_adapter.get());
+    led = createLED();
 
     // Build the argument structs for the tasks
-    auto setup_args = std::make_unique<SetupTaskArgs>(nullptr, nullptr, nullptr, temperature.get(), network.get());
-    auto temperature_args = std::make_unique<TemperatureTaskArgs>(measurement_queue, temperature.get());
-    auto network_args = std::make_unique<NetworkTaskArgs>(measurement_queue, network.get());
-    auto led_args = std::make_unique<LedTaskArgs>(led.get());
+    setup_args = std::make_unique<SetupTaskArgs>(nullptr, nullptr, nullptr, temperature.get(), network.get());
+    temperature_args = std::make_unique<TemperatureTaskArgs>(measurement_queue, temperature.get());
+    network_args = std::make_unique<NetworkTaskArgs>(measurement_queue, network.get());
+    led_args = std::make_unique<LedTaskArgs>(led.get());
 
-    // Regiter tasks to FreeRTOS
-    xTaskHandle setup_task_handle = nullptr;
-    xTaskHandle temperature_task_handle = nullptr;
-    xTaskHandle network_task_handle = nullptr;
-    xTaskCreate(setup_task, "SETUP", 256, setup_args.get(), configMAX_PRIORITIES - 1, &setup_task_handle);
+    // Register tasks to FreeRTOS
+    // We pass the addresses in setup_args directly to xTaskCreate
+    xTaskCreate(setup_task, "SETUP", 256, setup_args.get(), configMAX_PRIORITIES - 1, &setup_args->self);
     xTaskCreate(temperature_task, "TEMPERATURE", 256, temperature_args.get(), configMAX_PRIORITIES - 2,
-        &temperature_task_handle);
-    xTaskCreate(network_task, "NETWORK", 256, network_args.get(), configMAX_PRIORITIES - 3, &network_task_handle);
+        &setup_args->temperature_task);
+    xTaskCreate(network_task, "NETWORK", 256, network_args.get(), configMAX_PRIORITIES - 3, &setup_args->network_task);
     xTaskCreate(led_task, "LED", configMINIMAL_STACK_SIZE, led_args.get(), configMAX_PRIORITIES - 4, nullptr);
-
-    // Update the setup task args with the task handles
-    setup_args->self = setup_task_handle;
-    setup_args->temperature_task = temperature_task_handle;
-    setup_args->network_task = network_task_handle;
 
     // Start the FreeRTOS scheduler
     utils::logger.info("Staring RTOS scheduler...\n");

@@ -38,6 +38,9 @@
 #define USART_FLOWCONTROL_CTS 0x2
 #define USART_FLOWCONTROL_RTS_CTS 0x3
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 void usart_set_baudrate(uint32_t usart, uint32_t baud);
 void usart_set_databits(uint32_t usart, uint32_t bits);
 void usart_set_stopbits(uint32_t usart, uint32_t stopbits);
@@ -58,13 +61,16 @@ void usart_enable_error_interrupt(uint32_t usart);
 void usart_disable_error_interrupt(uint32_t usart);
 void usart_disable_idle_interrupt(uint32_t usart);
 void usart_enable_idle_interrupt(uint32_t usart);
-uint32_t usart_get_flag(uint32_t usart, uint32_t flag);
+bool usart_get_flag(uint32_t usart, uint32_t flag);
 void usart_send(uint32_t usart, uint16_t data);
 uint16_t usart_recv(uint32_t usart);
 void usart_enable_rx_dma(uint32_t usart);
 void usart_disable_rx_dma(uint32_t usart);
 void usart_enable_tx_dma(uint32_t usart);
 void usart_disable_tx_dma(uint32_t usart);
+#ifdef __cplusplus
+}
+#endif
 
 extern volatile uint32_t mock_usart_dr;
 extern volatile uint32_t mock_usart_sr;

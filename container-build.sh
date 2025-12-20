@@ -33,7 +33,7 @@ if [ "$#" -eq 0 ]; then
         $IMAGE_NAME
 else
     echo "Running command in $IMAGE_NAME: $@"
-    $CONTAINER_TOOL run --rm $RUN_FLAGS \
+    $CONTAINER_TOOL run --rm -it $RUN_FLAGS \
         -v "$(pwd):/workspace" \
         -u $(id -u):$(id -g) \
         $IMAGE_NAME \

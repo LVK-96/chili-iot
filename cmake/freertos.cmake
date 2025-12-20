@@ -1,3 +1,5 @@
+include_guard(GLOBAL)
+message(STATUS "Including freertos.cmake")
 # --- Dependencies (Declarations) ---
 include(cmake/dependencies.cmake)
 
@@ -10,14 +12,16 @@ target_include_directories(freertos_config SYSTEM INTERFACE src)
 
 # --- FetchContent Population ---
 # Manually populate FreeRTOS to control its build
-cmake_policy(SET CMP0169 OLD)
+if(POLICY CMP0169)
+    cmake_policy(SET CMP0169 OLD)
+endif()
 FetchContent_GetProperties(FreeRTOS-Kernel)
 if(NOT freertos-kernel_POPULATED)
     FetchContent_Populate(FreeRTOS-Kernel)
 endif()
 
 # Populate others
-FetchContent_MakeAvailable(libopencm3 BME280_driver)
+FetchContent_MakeAvailable(libopencm3 BME280_driver doctest)
 
 include(cmake/libopencm3.cmake)
 include(cmake/bme280.cmake)

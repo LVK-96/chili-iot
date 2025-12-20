@@ -1,3 +1,4 @@
+include_guard(GLOBAL)
 # Style checks
 find_program(CLANG_FORMAT clang-format)
 

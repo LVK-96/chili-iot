@@ -4,8 +4,8 @@
 
 #include <bme280.h>
 
+#include "BME280TemperatureSensor.h"
 #include "Logger.h"
-#include "Temperature.h"
 #include "utils.h"
 
 utils::ErrorCode BME280TemperatureSensor::init() const

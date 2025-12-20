@@ -43,8 +43,14 @@
 #define GPIO_I2C1_SCL GPIO6
 #define GPIO_I2C1_SDA GPIO7
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 void gpio_set_mode(uint32_t gpioport, uint8_t mode, uint8_t cnf, uint16_t gpios);
 void gpio_set(uint32_t gpioport, uint16_t gpios);
 void gpio_clear(uint32_t gpioport, uint16_t gpios);
 void gpio_toggle(uint32_t gpioport, uint16_t gpios);
 uint16_t gpio_get(uint32_t gpioport, uint16_t gpios);
+#ifdef __cplusplus
+}
+#endif

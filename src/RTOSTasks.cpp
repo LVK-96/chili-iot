@@ -4,22 +4,22 @@
 #include <queue.h>
 #include <task.h>
 
-#include "BlinkyLED.h"
 #include "MQTTClient.h"
-#include "Network.h"
 #include "RTOSTasks.h"
-#include "Temperature.h"
+#include "interfaces/ILED.h"
+#include "interfaces/INetwork.h"
+#include "interfaces/ITemperatureSensor.h"
 #include "utils.h"
 
 #ifndef SERVER_IP
 #define SERVER_IP "127.0.0.1"
-#endif
+#endif // !SERVER_IP
 
 #ifndef SERVER_PORT
-#define SERVER_PORT 12345
-#endif
+#define SERVER_PORT "666"
+#endif // !SERVER_PORT
 
-static void setup_network(Network& network)
+static void setup_network(INetwork& network)
 {
     utils::logger.info("Setting up network\n");
     while (network.init() != utils::ErrorCode::OK) {
@@ -28,7 +28,7 @@ static void setup_network(Network& network)
     }
 }
 
-static void setup_temperature(const TemperatureSensor& temperature)
+static void setup_temperature(const ITemperatureSensor& temperature)
 {
     while (temperature.init() != utils::ErrorCode::OK) {
         ;

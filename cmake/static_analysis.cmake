@@ -1,3 +1,4 @@
+include_guard(GLOBAL)
 # Static Analysis
 find_program(CLANG_TIDY clang-tidy)
 
