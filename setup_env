@@ -1,9 +1,13 @@
 # Source this script to setup the development environment
 
-# Setup pyton environment
-python -m venv .venv
+# Setup python environment
+if ! command -v uv >/dev/null 2>&1; then
+    echo "Error: uv is not installed. Please install it (https://docs.astral.sh/uv/)"
+    return 1
+fi
+
+uv sync
 . .venv/bin/activate
-pip install -r requirements.txt
 
 # Prefer Ninja if available
 if command -v ninja >/dev/null 2>&1; then

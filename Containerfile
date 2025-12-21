@@ -56,22 +56,16 @@ ENV PATH="/opt/xpack-qemu-arm-${QEMU_VERSION}/bin:$PATH"
 # Add additional repositories
 # Ubuntu Toolchain - newer version of GCC
 RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test
-# Deadsnakes - python
-RUN add-apt-repository -y ppa:deadsnakes/ppa
 # LLVM
 ARG LLVM_VERSION=20
 RUN curl -fsSL --connect-timeout 5 https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc \
     && add-apt-repository -y "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-${LLVM_VERSION} main"
 
-# Python, GCC, Clang
-ARG PYTHON_VERSION=3.14
+# GCC, Clang
 ARG GCC_VERSION=14
 RUN apt-get update && apt-get install -y \
     gcc-${GCC_VERSION} \
     g++-${GCC_VERSION} \
-    python${PYTHON_VERSION} \
-    python${PYTHON_VERSION}-venv \
-    python${PYTHON_VERSION}-dev \
     clang-format-${LLVM_VERSION} \
     clang-tidy-${LLVM_VERSION} \
     clangd-${LLVM_VERSION} \
@@ -89,10 +83,14 @@ RUN update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/cl
 WORKDIR /workspace
 
 # Python environment
-ENV VIRTUAL_ENV=/opt/venv
-RUN python${PYTHON_VERSION} -m venv $VIRTUAL_ENV
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install uv (Standalone)
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+COPY pyproject.toml uv.lock ./
+# Sync dependencies (creates .venv)
+RUN uv sync --frozen
+
+# Add uv venv to PATH (overriding previous VIRTUAL_ENV definition effectively)
+ENV PATH="/workspace/.venv/bin:$PATH"
 
 CMD ["/bin/bash"]
